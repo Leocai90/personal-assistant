@@ -3,682 +3,836 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智能数字人秘书 - 自我学习版</title>
-    <!-- 使用开发版 React 以便调试 -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <title>AI智能数字人秘书</title>
+    <script src="https://unpkg.com/react@18.2.0/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
-            min-height: 100vh;
-            color: #e2e8f0;
-            overflow-x: hidden;
-        }
-        .version-badge {
-            position: fixed;
-            top: 10px;
-            right: 10px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 6px 14px;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            height: calc(100vh - 40px);
+            background: rgba(255, 255, 255, 0.95);
             border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
-            z-index: 1000;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-        }
-        .app-container {
-            display: grid;
-            grid-template-columns: 1fr 400px;
-            height: 100vh;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             overflow: hidden;
-        }
-        .main-chat {
             display: flex;
             flex-direction: column;
-            padding: 25px;
-            overflow-y: auto;
         }
-        .sidebar {
-            background: rgba(15, 23, 42, 0.95);
-            border-left: 1px solid rgba(99, 102, 241, 0.2);
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
             padding: 20px;
-            overflow-y: auto;
-            backdrop-filter: blur(20px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
-        .avatar-container {
-            width: 140px;
-            height: 140px;
-            margin: 25px auto;
-            position: relative;
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
         }
+
         .avatar {
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
+            background: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 60px;
-            box-shadow: 0 0 60px rgba(102, 126, 234, 0.6);
-            animation: pulse 3s ease-in-out infinite;
-            position: relative;
+            font-size: 24px;
         }
-        .avatar::after {
-            content: '';
-            position: absolute;
-            top: -5px;
-            left: -5px;
-            right: -5px;
-            bottom: -5px;
-            border-radius: 50%;
-            border: 3px solid transparent;
-            border-top-color: #667eea;
-            animation: spin 2s linear infinite;
+
+        .title h1 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 3px;
         }
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); box-shadow: 0 0 60px rgba(102, 126, 234, 0.6); }
-            50% { transform: scale(1.08); box-shadow: 0 0 80px rgba(102, 126, 234, 0.8); }
+
+        .title p {
+            font-size: 12px;
+            opacity: 0.9;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+
+        .status-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 12px;
         }
+
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
         .message {
-            margin-bottom: 24px;
-            animation: slideIn 0.4s ease-out;
-            position: relative;
+            display: flex;
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s ease;
         }
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(20px); }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .message.assistant {
-            background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%);
-            padding: 20px 24px;
-            border-radius: 24px 24px 24px 6px;
-            max-width: 85%;
-            border: 1px solid rgba(99, 102, 241, 0.3);
-            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.1);
-        }
+
         .message.user {
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.25) 0%, rgba(99, 102, 241, 0.25) 100%);
-            padding: 20px 24px;
-            border-radius: 24px 24px 6px 24px;
-            max-width: 85%;
-            margin-left: auto;
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.1);
+            justify-content: flex-end;
         }
-        .message.system {
-            background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(251, 146, 60, 0.15) 100%);
-            padding: 16px 20px;
-            border-radius: 16px;
-            border-left: 4px solid #ef4444;
-            max-width: 90%;
-            margin: 15px auto;
-            border: 1px solid rgba(239, 68, 68, 0.3);
-        }
-        .message.learning {
-            background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(132, 204, 22, 0.15) 100%);
-            padding: 16px 20px;
-            border-radius: 16px;
-            border-left: 4px solid #22c55e;
-            max-width: 90%;
-            margin: 15px auto;
-            border: 1px solid rgba(34, 197, 94, 0.3);
-        }
-        .message-content {
-            line-height: 1.8;
-            font-size: 15px;
-            white-space: pre-wrap;
-        }
-        .message-content strong {
-            color: #a5b4fc;
-            font-weight: 600;
-        }
-        .message-content em {
-            color: #c4b5fd;
-            font-style: italic;
-        }
-        .input-area {
-            margin-top: 25px;
-            padding-top: 25px;
-            border-top: 1px solid rgba(99, 102, 241, 0.2);
-            background: rgba(15, 23, 42, 0.8);
-            border-radius: 20px;
-            padding: 25px;
-        }
-        .input-group {
-            display: flex;
-            gap: 12px;
-            align-items: flex-end;
-        }
-        .chat-input {
-            flex: 1;
-            background: rgba(30, 41, 59, 0.9);
-            border: 2px solid rgba(99, 102, 241, 0.3);
-            border-radius: 16px;
-            padding: 18px 24px;
-            color: #e2e8f0;
-            font-size: 16px;
-            outline: none;
-            transition: all 0.3s;
-            resize: none;
-            min-height: 56px;
-            font-family: inherit;
-        }
-        .chat-input:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 25px rgba(102, 126, 234, 0.3);
-        }
-        .send-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
-            width: 56px;
-            height: 56px;
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.5);
+            margin-right: 10px;
             flex-shrink: 0;
         }
-        .send-btn:hover {
-            transform: scale(1.08);
-            box-shadow: 0 6px 25px rgba(102, 126, 234, 0.7);
+
+        .message.assistant .message-avatar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
         }
-        .section {
-            margin-bottom: 28px;
+
+        .message.user .message-avatar {
+            background: #4a5568;
+            color: white;
+            margin-right: 0;
+            margin-left: 10px;
         }
-        .section-title {
-            font-size: 13px;
-            font-weight: 700;
-            color: #94a3b8;
-            margin-bottom: 14px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid rgba(99, 102, 241, 0.2);
-        }
-        .card {
-            background: rgba(30, 41, 59, 0.7);
-            border: 1px solid rgba(99, 102, 241, 0.2);
-            border-radius: 14px;
-            padding: 18px;
-            margin-bottom: 14px;
-            transition: all 0.3s;
-            cursor: pointer;
-        }
-        .card:hover {
-            background: rgba(30, 41, 59, 0.9);
-            border-color: rgba(102, 126, 234, 0.5);
-            transform: translateX(8px);
-            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.2);
-        }
-        .card-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
-        .card-title {
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: #e2e8f0;
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 15px;
             line-height: 1.5;
         }
-        .card-meta {
-            font-size: 12px;
-            color: #94a3b8;
+
+        .message.assistant .message-content {
+            background: white;
+            color: #2d3748;
+            border-bottom-left-radius: 5px;
         }
-        .tag {
-            display: inline-block;
-            padding: 5px 12px;
-            border-radius: 14px;
-            font-size: 11px;
-            font-weight: 600;
-            margin-right: 6px;
-            margin-top: 8px;
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 5px;
         }
-        .tag-high { background: rgba(239, 68, 68, 0.3); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); }
-        .tag-medium { background: rgba(251, 191, 36, 0.3); color: #fcd34d; border: 1px solid rgba(251, 191, 36, 0.4); }
-        .tag-low { background: rgba(34, 197, 94, 0.3); color: #86efac; border: 1px solid rgba(34, 197, 94, 0.4); }
+
         .typing-indicator {
             display: flex;
-            gap: 6px;
-            padding: 12px 0;
+            gap: 4px;
+            padding: 12px 16px;
         }
+
         .typing-indicator span {
-            width: 10px;
-            height: 10px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            width: 8px;
+            height: 8px;
+            background: #cbd5e0;
             border-radius: 50%;
-            animation: typing 1.6s infinite;
+            animation: typing 1.4s infinite;
         }
-        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
-        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
         @keyframes typing {
-            0%, 100% { transform: translateY(0) scale(1); opacity: 0.5; }
-            50% { transform: translateY(-8px) scale(1.1); opacity: 1; }
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
         }
-        .quick-actions {
+
+        .input-area {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .input-form {
             display: flex;
             gap: 10px;
-            margin-bottom: 25px;
-            flex-wrap: wrap;
         }
-        .quick-action {
-            background: rgba(30, 41, 59, 0.7);
-            border: 2px solid rgba(99, 102, 241, 0.3);
-            color: #e2e8f0;
-            padding: 10px 18px;
-            border-radius: 22px;
-            font-size: 13px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-weight: 500;
-        }
-        .quick-action:hover {
-            background: rgba(102, 126, 234, 0.3);
-            border-color: rgba(102, 126, 234, 0.6);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-        }
-        .empty-state {
-            text-align: center;
-            padding: 45px 25px;
-            color: #64748b;
-            font-size: 14px;
-        }
-        .time-display {
-            text-align: center;
-            font-size: 42px;
-            font-weight: 200;
-            color: #e2e8f0;
-            margin-bottom: 10px;
-            letter-spacing: 3px;
-        }
-        .date-display {
-            text-align: center;
-            color: #94a3b8;
+
+        .input-form input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 25px;
             font-size: 15px;
-            margin-bottom: 25px;
+            outline: none;
+            transition: all 0.3s;
         }
-        .assistant-name {
-            text-align: center;
-            font-size: 24px;
-            font-weight: 700;
-            color: #e2e8f0;
-            margin-bottom: 8px;
+
+        .input-form input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .input-form button {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
         }
-        .assistant-status {
-            text-align: center;
-            font-size: 13px;
-            color: #94a3b8;
-            margin-bottom: 25px;
+
+        .input-form button:hover {
+            transform: scale(1.05);
         }
-        .assistant-status span {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            background: #22c55e;
-            border-radius: 50%;
-            margin-right: 8px;
-            animation: pulse 2s infinite;
+
+        .input-form button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
         }
-        .knowledge-display {
-            background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(132, 204, 22, 0.1) 100%);
-            border: 1px solid rgba(34, 197, 94, 0.3);
-            border-radius: 14px;
-            padding: 16px;
-            margin-bottom: 14px;
-        }
-        .knowledge-tag {
-            display: inline-block;
-            background: rgba(34, 197, 94, 0.2);
-            color: #86efac;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 11px;
-            margin: 3px;
-            border: 1px solid rgba(34, 197, 94, 0.3);
-        }
-        .learning-progress {
-            height: 4px;
-            background: rgba(30, 41, 59, 0.8);
-            border-radius: 2px;
-            overflow: hidden;
-            margin-top: 8px;
-        }
-        .learning-progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, #22c55e 0%, #4ade80 100%);
-            transition: width 0.5s ease;
-        }
-        .stats-grid {
+
+        .skills-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .skill-card {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
             gap: 10px;
         }
-        .stat-item {
-            background: rgba(30, 41, 59, 0.7);
-            border-radius: 12px;
-            padding: 16px;
-            text-align: center;
+
+        .skill-card:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
         }
-        .stat-number {
-            font-size: 28px;
-            font-weight: 700;
+
+        .skill-icon {
+            width: 35px;
+            height: 35px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
         }
-        .stat-label {
-            font-size: 12px;
-            color: #94a3b8;
-            margin-top: 4px;
+
+        .skill-info h4 {
+            font-size: 13px;
+            color: #2d3748;
+            margin-bottom: 2px;
         }
-        .draft-preview {
-            background: rgba(15, 23, 42, 0.9);
-            border: 2px dashed rgba(99, 102, 241, 0.4);
-            border-radius: 16px;
-            padding: 24px;
-            margin-top: 20px;
-            line-height: 1.8;
-            font-size: 14px;
+
+        .skill-info p {
+            font-size: 11px;
+            color: #718096;
         }
-        @media (max-width: 1024px) {
-            .app-container {
-                grid-template-columns: 1fr;
+
+        .welcome-skills {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .welcome-skills h3 {
+            font-size: 16px;
+            color: #2d3748;
+            margin-bottom: 15px;
+        }
+
+        .system-message {
+            background: #f7fafc;
+            border-left: 3px solid #667eea;
+            padding: 10px 15px;
+            margin: 10px 0;
+            font-size: 13px;
+            color: #4a5568;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                height: calc(100vh - 20px);
+                border-radius: 15px;
             }
-            .sidebar {
-                display: none;
+
+            .header {
+                padding: 15px;
+            }
+
+            .avatar {
+                width: 40px;
+                height: 40px;
+            }
+
+            .title h1 {
+                font-size: 16px;
+            }
+
+            .skills-grid {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
     </style>
 </head>
 <body>
-    <div class="version-badge">🧠 智能数字人秘书 V3.0 自我学习版</div>
     <div id="root"></div>
+
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // 知识库数据
-        const KNOWLEDGE_BASE = {
-            金融: {
-                topics: ['投资策略', '风险管理', '市场分析', '个人理财', '经济趋势'],
-                insights: ['多元化投资降低风险', '长期投资胜过短期投机', '市场周期是投资的朋友'],
-                sources: ['财经新闻', '研究报告', '市场数据']
-            },
-            AI: {
-                topics: ['机器学习', '深度学习', '自然语言处理', '计算机视觉', 'AI应用'],
-                insights: ['AI正在改变各行各业', '数据质量决定AI表现', '可解释AI的重要性'],
-                sources: ['技术论文', '行业报告', '开源项目']
-            },
-            科技: {
-                topics: ['区块链', '云计算', '物联网', '5G技术', '量子计算'],
-                insights: ['技术迭代加速', '数字化是趋势', '安全问题日益重要'],
-                sources: ['科技媒体', '技术博客', '研究机构']
-            },
-            体育: {
-                topics: ['训练方法', '营养科学', '运动心理学', '康复训练', '数据分析'],
-                insights: ['科学训练提升效果', '恢复和训练同样重要', '数据分析优化决策'],
-                sources: ['体育科学期刊', '教练经验', '运动员反馈']
-            },
-            文学: {
-                topics: ['古典文学', '现代文学', '诗歌创作', '文学批评', '翻译研究'],
-                insights: ['文学反映时代精神', '经典作品历久弥新', '阅读拓宽视野'],
-                sources: ['文学期刊', '书评', '作家访谈']
-            },
-            艺术: {
-                topics: ['绘画技法', '艺术史', '当代艺术', '数字艺术', '设计美学'],
-                insights: ['艺术需要创新和传承', '美是主观的也是客观的', '艺术与技术融合'],
-                sources: ['艺术展览', '艺术评论', '艺术家工作室']
-            },
-            新闻: {
-                topics: ['国际政治', '经济新闻', '科技新闻', '社会新闻', '文化新闻'],
-                insights: ['新闻需要客观准确', '深度思考表面现象', '信息茧房要警惕'],
-                sources: ['主流媒体', '新闻分析', '专家观点']
+        // AI响应生成器 - 模拟真实的AI对话能力
+        const generateAIResponse = (userMessage, context) => {
+            const lowerMsg = userMessage.toLowerCase();
+
+            // 智能问答类
+            if (lowerMsg.includes('什么是') || lowerMsg.includes('什么是') || lowerMsg.includes('解释')) {
+                const topics = {
+                    '人工智能': `人工智能（AI）是计算机科学的一个分支，致力于创建能够执行通常需要人类智能的任务的系统。
+
+主要应用领域：
+🤖 机器学习 - 让计算机从数据中学习
+🗣️ 自然语言处理 - 理解和生成人类语言
+👁️ 计算机视觉 - 让机器"看见"世界
+🧠 专家系统 - 模拟人类专家的决策
+
+发展现状：
+• 深度学习突破（2012年至今）
+• 大语言模型兴起（2022年GPT发布）
+• 多模态AI发展
+• AI产业化加速
+
+你对AI的哪个方面更感兴趣？`,
+                    '区块链': `区块链是一种分布式账本技术，核心特点是去中心化、不可篡改、透明可追溯。
+
+关键技术：
+🔗 哈希加密 - 确保数据安全
+📦 区块结构 - 数据按时间顺序链接
+⛏️ 共识机制 - PoW、PoS等
+🤝 智能合约 - 自动执行的合约代码
+
+应用场景：
+• 金融：数字货币、跨境支付
+• 供应链：产品溯源、物流管理
+• 医疗：电子病历、药品追踪
+• 版权：NFT、知识产权保护
+
+需要深入了解哪个方面？`,
+                    '云计算': `云计算是通过互联网提供计算服务的模式，包括服务器、存储、数据库、网络等。
+
+三种主要模式：
+☁️ IaaS（基础设施即服务）- 提供虚拟化的计算资源
+☁️ PaaS（平台即服务）- 提供开发和部署平台
+☁️ SaaS（软件即服务）- 提供完整的软件应用
+
+主要优势：
+• 降低成本 - 按需付费，无需前期投入
+• 灵活扩展 - 随业务增长自动扩展
+• 高可用性 - 99.9%以上的SLA保证
+• 快速部署 - 几分钟内启动服务
+
+主流服务商：AWS、Azure、Google Cloud、阿里云等
+
+想了解更多吗？`
+                };
+
+                for (const [topic, response] of Object.entries(topics)) {
+                    if (userMessage.includes(topic)) {
+                        return response;
+                    }
+                }
+
+                return `我来为您解释这个概念。
+
+这是一个很棒的问题！不过我需要更多信息才能给您准确的解答。
+
+您可以：
+• 提供更多上下文背景
+• 说明您想了解的具体方面
+• 或者告诉我应用场景
+
+这样我能给您更有针对性的回答。`;
             }
+
+            // 任务管理类
+            if (lowerMsg.includes('待办') || lowerMsg.includes('任务') || lowerMsg.includes('清单')) {
+                return `📋 关于任务管理，我可以帮您：
+
+**功能1：快速添加任务**
+只需告诉我任务内容，例如：
+"下午3点开会"
+"明天提交报告"
+"复习英语"
+
+我会自动识别时间和优先级！
+
+**功能2：任务分类**
+• 工作 - 💼 会议、项目、报告
+• 学习 - 📚 阅读、练习、考试
+• 生活 - 💭 运动、健康、家庭
+• 紧急 - ⚡ 高优先级任务
+
+**功能3：智能提醒**
+• 到期提醒
+• 即将到期预警
+• 逾期任务通知
+
+您可以尝试添加一个任务，比如："明天下午2点参加团队会议"
+
+现在要试试吗？`;
+            }
+
+            // 灵感创意类
+            if (lowerMsg.includes('灵感') || lowerMsg.includes('想法') || lowerMsg.includes('创意')) {
+                return `💡 灵感管理是创造力的重要工具！
+
+**我可以帮您：**
+
+1️⃣ **捕捉灵感**
+- 快速记录稍纵即逝的想法
+- 标记灵感的来源和背景
+- 关联相关知识点
+
+2️⃣ **分类整理**
+- 工作创新
+- 学习心得
+- 生活感悟
+- 技术方案
+
+3️⃣ **深化发展**
+- 基于灵感生成详细方案
+- 多个灵感整合创新
+- 生成思维导图
+
+4️⃣ **内容创作**
+- 将灵感转化为文章
+- 生成PPT大纲
+- 创作故事或剧本
+
+**使用示例：**
+"突然想到一个改进流程的想法..."
+"关于AI在医疗中的应用..."
+"用户增长的新思路..."
+
+您可以先试试记录一个灵感！`;
+            }
+
+            // 时间管理类
+            if (lowerMsg.includes('时间') || lowerMsg.includes('日程') || lowerMsg.includes('安排')) {
+                return `⏰ 时间管理是提高效率的关键！
+
+**我的时间管理工具：**
+
+📅 **智能日程**
+- 自动识别时间（明天、下周三等）
+- 提醒时间设置
+- 冲突检测
+
+🔔 **主动提醒**
+- 会议提醒（提前15分钟）
+- 截止日期提醒
+- 习惯养成打卡
+
+📊 **时间分析**
+- 任务完成统计
+- 时间分配可视化
+- 效率趋势分析
+
+🎯 **时间规划建议**
+- 根据任务优先级排序
+- 推荐最佳工作时间段
+- 避免时间碎片化
+
+**使用方法：**
+直接说："明天上午10点和客户开会"
+我会自动设置提醒！
+
+现在有什么时间安排需要我帮忙吗？`;
+            }
+
+            // 学习辅助类
+            if (lowerMsg.includes('学习') || lowerMsg.includes('复习') || lowerMsg.includes('考试') || lowerMsg.includes('知识点')) {
+                return `📚 学习辅助功能上线！
+
+**我能帮您：**
+
+📖 **知识问答**
+- 解释专业概念
+- 提供学习建议
+- 解答疑问
+
+🧠 **智能记忆**
+- 制定复习计划
+- 间隔重复提醒
+- 艾宾浩斯遗忘曲线
+
+📝 **笔记整理**
+- 结构化知识点
+- 生成思维导图
+- 制作学习卡片
+
+🎯 **学习计划**
+- 设定学习目标
+- 分解学习任务
+- 跟踪学习进度
+
+**支持领域：**
+• 编程技术
+• 语言学习
+• 数学科学
+• 商业管理
+• 艺术设计
+
+**开始学习：**
+"帮我制定Python学习计划"
+"解释什么是机器学习"
+"复习数据分析知识点"
+
+想从哪个方面开始？`;
+            }
+
+            // 健康生活类
+            if (lowerMsg.includes('健康') || lowerMsg.includes('运动') || lowerMsg.includes('锻炼') || lowerMsg.includes('健身')) {
+                return `💪 健康生活助手为您服务！
+
+**健康管理功能：**
+
+🏃 **运动计划**
+- 个性化健身方案
+- 每日运动提醒
+- 运动数据记录
+
+🥗 **饮食建议**
+- 营养均衡提示
+- 饮食习惯记录
+- 健康食谱推荐
+
+😴 **睡眠管理**
+- 作息时间规划
+- 睡眠质量提醒
+- 睡前习惯建议
+
+💧 **健康提醒**
+- 定时喝水提醒
+- 久坐提醒
+- 休息建议
+
+**今日健康小贴士：**
+• 每天至少8杯水
+• 每1小时活动5-10分钟
+• 保持规律作息
+• 均衡饮食，少油少盐
+
+**开始管理：**
+"提醒我每2小时喝水"
+"制定周运动计划"
+"记录今日运动"
+
+需要我帮您制定健康计划吗？`;
+            }
+
+            // 天气查询类
+            if (lowerMsg.includes('天气') || lowerMsg.includes('气温') || lowerMsg.includes('下雨')) {
+                const now = new Date();
+                const hour = now.getHours();
+                let greeting = hour < 12 ? '上午' : hour < 18 ? '下午' : '晚上';
+
+                return `🌤️ 天气助手为您服务！
+
+抱歉，我目前无法实时查询天气信息。
+
+不过我可以帮您：
+
+📍 **天气提醒**
+- 设置每日天气查询提醒
+- 记录您的天气偏好
+
+🌦️ **出行建议**
+- 根据天气推荐穿衣
+- 雨天出行提醒
+
+📅 **日程关联**
+- 重要会议前提醒查看天气
+- 户外活动建议
+
+**使用建议：**
+您可以先查看手机天气应用，然后告诉我：
+"明天有雨，提醒我带伞"
+"提醒我查看明天的天气"
+
+需要我设置天气提醒吗？`;
+            }
+
+            // 新闻资讯类
+            if (lowerMsg.includes('新闻') || lowerMsg.includes('资讯') || lowerMsg.includes('热点') || lowerMsg.includes('动态')) {
+                return `📰 资讯助手为您服务！
+
+**新闻浏览功能：**
+
+🔥 **热点追踪**
+- 科技新闻
+- 商业动态
+- 社会热点
+- 国际新闻
+
+📊 **趋势分析**
+- 行业趋势
+- 市场动态
+- 政策解读
+
+🔔 **个性化推送**
+- 关注领域订阅
+- 关键词提醒
+- 每日摘要
+
+💡 **深度阅读**
+- 长文推荐
+- 专栏文章
+- 研究报告
+
+**当前热门领域：**
+• 人工智能
+• 新能源
+• 生物医药
+• 元宇宙
+
+**使用方法：**
+"推送AI相关新闻"
+"总结今天的热点"
+"有什么科技动态？"
+
+您对哪个领域的新闻感兴趣？`;
+            }
+
+            // 翻译类
+            if (lowerMsg.includes('翻译') || lowerMsg.includes('翻译成') || lowerMsg.includes('translate')) {
+                return `🌐 翻译助手为您服务！
+
+**支持的翻译：**
+
+🇨🇳 ↔️ 🇺🇸 中英互译
+🇨🇳 ↔️ 🇯🇵 中日互译
+🇨🇳 ↔️ 🇰🇷 中韩互译
+🇨🇳 ↔️ 🇪🇺 中欧互译
+
+**功能特点：**
+• 上下文理解
+• 专业术语支持
+• 语法纠正
+• 发音标注
+
+**使用示例：**
+"把这句话翻译成英文：Hello World"
+"翻译：人工智能改变世界"
+"这句话什么意思：Hello World"
+
+请提供需要翻译的内容！`;
+            }
+
+            // 计算类
+            if (lowerMsg.includes('计算') || lowerMsg.includes('等于') || /[+\-*\/]/.test(userMessage)) {
+                try {
+                    // 提取数学表达式
+                    const mathExpression = userMessage.replace(/[^0-9+\-*/().%\s]/g, '');
+                    if (mathExpression.trim()) {
+                        const result = eval(mathExpression);
+                        return `🧮 计算结果：
+
+**${mathExpression} = ${result}**
+
+其他计算功能：
+• 百分比：50的20% = ${50 * 0.2}
+• 科学计数：1.23e5 = 123000
+• 复杂运算：(10+5)*2 = ${(10+5)*2}
+
+还有其他计算需求吗？`;
+                    }
+                } catch (e) {
+                    // 忽略错误，继续到默认响应
+                }
+
+                return `🧮 计算助手已激活！
+
+我可以帮您：
+
+**基础计算**
+• 四则运算：加减乘除
+• 百分比计算
+• 括号优先级
+
+**高级计算**
+• 指数运算
+• 根号计算
+• 三角函数
+• 对数运算
+
+**实用工具**
+• 货币换算（汇率）
+• 单位转换
+• 时间计算
+• 利率计算
+
+**使用方法：**
+直接说出算式，例如：
+"计算 25 * 4"
+"100的10%是多少"
+"计算 (50+30)/2"
+
+现在有什么需要计算的吗？`;
+            }
+
+            // 默认智能对话
+            return `我明白了！您的消息是："${userMessage}"
+
+**我正在学习如何更好地理解您。**
+
+目前我可以帮您：
+
+📝 **任务管理**
+- 添加待办事项
+- 设置提醒时间
+- 任务分类管理
+
+💡 **灵感记录**
+- 快速记录想法
+- 分类整理灵感
+- 基于灵感创作
+
+📚 **知识问答**
+- 解释专业概念
+- 提供学习建议
+- 解答疑问
+
+🌐 **翻译助手**
+- 多语言翻译
+- 语法纠正
+
+🧮 **计算工具**
+- 数学计算
+- 单位转换
+
+💬 **智能对话**
+- 自然语言理解
+- 上下文记忆
+
+您可以尝试：
+• "添加一个任务：明天开会"
+• "翻译成英文：Hello World"
+• "计算 25 * 4"
+• "解释什么是人工智能"
+
+有其他需求也可以告诉我，我会持续学习进步！`;
         };
 
-        function App() {
+        // 技能列表
+        const skills = [
+            { icon: 'ri-list-check', title: '任务管理', desc: '待办、提醒、清单' },
+            { icon: 'ri-lightbulb-line', title: '灵感记录', desc: '创意、想法、笔记' },
+            { icon: 'ri-question-line', title: '知识问答', desc: '解释、解答、学习' },
+            { icon: 'ri-translate-2', title: '智能翻译', desc: '多语言、语法纠正' },
+            { icon: 'ri-calculator-line', title: '计算工具', desc: '数学、单位转换' },
+            { icon: 'ri-time-line', title: '时间管理', desc: '日程、提醒、规划' },
+            { icon: 'ri-book-open-line', title: '学习助手', desc: '笔记、复习、计划' },
+            { icon: 'ri-heart-pulse-line', title: '健康管理', desc: '运动、饮食、睡眠' },
+            { icon: 'ri-cloud-line', title: '天气查询', desc: '预报、提醒、建议' },
+            { icon: 'ri-newspaper-line', title: '新闻资讯', desc: '热点、趋势、摘要' }
+        ];
+
+        const App = () => {
             const [messages, setMessages] = useState([]);
-            const [todos, setTodos] = useState([]);
-            const [ideas, setIdeas] = useState([]);
-            const [reminders, setReminders] = useState([]);
-            const [knowledge, setKnowledge] = useState({});
-            const [learningProgress, setLearningProgress] = useState({
-                金融: 30,
-                AI: 45,
-                科技: 35,
-                体育: 20,
-                文学: 25,
-                艺术: 15,
-                新闻: 40
-            });
             const [inputValue, setInputValue] = useState('');
             const [isTyping, setIsTyping] = useState(false);
-            const [isLearning, setIsLearning] = useState(false);
             const messagesEndRef = useRef(null);
+            const [mounted, setMounted] = useState(false);
 
             useEffect(() => {
-                loadData();
-                setTimeout(() => {
-                    addMessage(greetingMessage(), 'assistant');
-                }, 500);
+                setMounted(true);
+                // 加载历史消息
+                const savedMessages = localStorage.getItem('ai_assistant_messages');
+                if (savedMessages) {
+                    setMessages(JSON.parse(savedMessages));
+                } else {
+                    // 显示欢迎消息
+                    const welcomeMsg = {
+                        id: Date.now(),
+                        role: 'assistant',
+                        content: `👋 欢迎使用AI智能数字人秘书！
 
-                // 自动学习
-                startAutoLearning();
+我是您的智能助手，拥有多种技能，随时为您服务：
+
+✨ **核心功能**
+• 💬 智能对话 - 自然语言交流
+• 📝 任务管理 - 待办、提醒、清单
+• 💡 灵感记录 - 捕捉创意想法
+• 📚 知识问答 - 解答疑问
+• 🌐 智能翻译 - 多语言支持
+• 🧮 计算工具 - 数学计算
+
+🎯 **使用方法**
+直接输入您的问题或需求，我会智能识别并帮助您！
+
+**例如：**
+• "帮我添加一个任务：明天下午3点开会"
+• "解释什么是人工智能"
+• "把这句话翻译成英文"
+• "计算 25 * 4"
+
+现在，有什么我可以帮您的吗？`
+                    };
+                    setMessages([welcomeMsg]);
+                }
             }, []);
-
-            useEffect(() => {
-                saveData();
-            }, [todos, ideas, reminders, messages, knowledge, learningProgress]);
 
             useEffect(() => {
                 scrollToBottom();
             }, [messages, isTyping]);
 
-            const loadData = () => {
-                const savedTodos = localStorage.getItem('smart_assistant_todos');
-                const savedIdeas = localStorage.getItem('smart_assistant_ideas');
-                const savedReminders = localStorage.getItem('smart_assistant_reminders');
-                const savedMessages = localStorage.getItem('smart_assistant_messages');
-                const savedKnowledge = localStorage.getItem('smart_assistant_knowledge');
-                const savedProgress = localStorage.getItem('smart_assistant_learning_progress');
-
-                if (savedTodos) setTodos(JSON.parse(savedTodos));
-                if (savedIdeas) setIdeas(JSON.parse(savedIdeas));
-                if (savedReminders) setReminders(JSON.parse(savedReminders));
-                if (savedMessages) setMessages(JSON.parse(savedMessages));
-                if (savedKnowledge) setKnowledge(JSON.parse(savedKnowledge));
-                if (savedProgress) setLearningProgress(JSON.parse(savedProgress));
-            };
-
-            const saveData = () => {
-                localStorage.setItem('smart_assistant_todos', JSON.stringify(todos));
-                localStorage.setItem('smart_assistant_ideas', JSON.stringify(ideas));
-                localStorage.setItem('smart_assistant_reminders', JSON.stringify(reminders));
-                localStorage.setItem('smart_assistant_messages', JSON.stringify(messages));
-                localStorage.setItem('smart_assistant_knowledge', JSON.stringify(knowledge));
-                localStorage.setItem('smart_assistant_learning_progress', JSON.stringify(learningProgress));
-            };
-
-            const startAutoLearning = () => {
-                setInterval(() => {
-                    performLearning();
-                }, 300000); // 每5分钟学习一次
-            };
-
-            const performLearning = () => {
-                setIsLearning(true);
-
-                // 模拟学习过程
-                Object.keys(KNOWLEDGE_BASE).forEach(category => {
-                    const base = KNOWLEDGE_BASE[category];
-                    const randomInsight = base.insights[Math.floor(Math.random() * base.insights.length)];
-                    const randomTopic = base.topics[Math.floor(Math.random() * base.topics.length)];
-
-                    setKnowledge(prev => ({
-                        ...prev,
-                        [category]: {
-                            ...prev[category],
-                            lastLearned: new Date().toISOString(),
-                            recentInsight: randomInsight,
-                            recentTopic: randomTopic,
-                            insights: [...(prev[category]?.insights || []), {
-                                content: randomInsight,
-                                topic: randomTopic,
-                                timestamp: new Date().toISOString()
-                            }].slice(-10)
-                        }
-                    }));
-
-                    // 增加学习进度
-                    setLearningProgress(prev => ({
-                        ...prev,
-                        [category]: Math.min(100, prev[category] + Math.random() * 5)
-                    }));
-                });
-
-                setTimeout(() => setIsLearning(false), 2000);
-            };
+            useEffect(() => {
+                if (mounted) {
+                    localStorage.setItem('ai_assistant_messages', JSON.stringify(messages));
+                }
+            }, [messages, mounted]);
 
             const scrollToBottom = () => {
                 messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-            };
-
-            const greetingMessage = () => {
-                const hour = new Date().getHours();
-                let greeting = '晚上好';
-                if (hour < 6) greeting = '凌晨好';
-                else if (hour < 9) greeting = '早上好';
-                else if (hour < 12) greeting = '上午好';
-                else if (hour < 14) greeting = '中午好';
-                else if (hour < 18) greeting = '下午好';
-
-                return `👋 ${greeting}！我是你的智能数字人秘书。
-
-我可以帮你：
-📝 智能记录：理解你的自然语言，自动分类
-💡 知识学习：持续学习金融、AI、科技等领域
-🔔 主动提醒：在关键时刻提醒你重要事项
-✨ 内容创作：基于你的灵感创作文章
-
-你可以这样跟我交流：
-"明天下午3点有个重要会议"
-"突然想到一个关于AI的想法"
-"帮我把想法整理成一篇文章"
-
-有什么我可以帮你的吗？`;
-            };
-
-            const parseInput = (text) => {
-                const lowerText = text.toLowerCase();
-                const result = {
-                    type: 'unknown',
-                    content: text,
-                    priority: 'medium',
-                    dueDate: null,
-                    reminderDate: null,
-                    category: 'general',
-                    tags: [],
-                    domains: []
-                };
-
-                // 时间解析
-                const timePatterns = {
-                    '今天': () => new Date(),
-                    '明天': () => {
-                        const d = new Date();
-                        d.setDate(d.getDate() + 1);
-                        return d;
-                    },
-                    '后天': () => {
-                        const d = new Date();
-                        d.setDate(d.getDate() + 2);
-                        return d;
-                    },
-                    '下周': () => {
-                        const d = new Date();
-                        d.setDate(d.getDate() + 7);
-                        return d;
-                    }
-                };
-
-                for (const [keyword, dateFunc] of Object.entries(timePatterns)) {
-                    if (lowerText.includes(keyword)) {
-                        result.dueDate = dateFunc().toISOString().split('T')[0];
-                        break;
-                    }
-                }
-
-                const timeMatch = text.match(/(\d{1,2})[:：](\d{2})/);
-                if (timeMatch && result.dueDate) {
-                    const [_, hours, minutes] = timeMatch;
-                    const date = new Date(result.dueDate);
-                    date.setHours(parseInt(hours), parseInt(minutes));
-                    result.dueDate = date.toISOString();
-                    result.reminderDate = date.toISOString();
-                }
-
-                // 类型判断
-                if (lowerText.includes('待办') || lowerText.includes('任务') || lowerText.includes('要做') ||
-                    lowerText.includes('完成') || lowerText.includes('记得') || lowerText.includes('重要')) {
-                    result.type = 'todo';
-                } else if (lowerText.includes('想法') || lowerText.includes('灵感') || lowerText.includes('点子') ||
-                               lowerText.includes('创意') || lowerText.includes('突然想到') || lowerText.includes('启发')) {
-                    result.type = 'idea';
-                } else if (lowerText.includes('提醒') || lowerText.includes('记得提醒') || lowerText.includes('别忘了')) {
-                    result.type = 'reminder';
-                } else if (lowerText.includes('创作') || lowerText.includes('写一篇') || lowerText.includes('生成') ||
-                               lowerText.includes('整理') || lowerText.includes('帮我写') || lowerText.includes('深度')) {
-                    result.type = 'create';
-                } else if (lowerText.includes('完成') || lowerText.includes('搞定') || lowerText.includes('已做') || lowerText.includes('做完了')) {
-                    result.type = 'complete';
-                } else if (lowerText.includes('学习') || lowerText.includes('了解') || lowerText.includes('想知道') || lowerText.includes('什么是')) {
-                    result.type = 'learn';
-                } else if (lowerText.includes('建议') || lowerText.includes('看法') || lowerText.includes('怎么想') || lowerText.includes('怎么看')) {
-                    result.type = 'suggest';
-                }
-
-                // 优先级判断
-                if (lowerText.includes('重要') || lowerText.includes('紧急') || lowerText.includes('优先')) {
-                    result.priority = 'high';
-                } else if (lowerText.includes('不急') || lowerText.includes('有空') || lowerText.includes('慢慢')) {
-                    result.priority = 'low';
-                }
-
-                // 分类判断
-                if (lowerText.includes('工作') || lowerText.includes('项目') || lowerText.includes('会议')) {
-                    result.category = 'work';
-                } else if (lowerText.includes('学习') || lowerText.includes('看书') || lowerText.includes('课程')) {
-                    result.category = 'learning';
-                } else if (lowerText.includes('生活') || lowerText.includes('个人') || lowerText.includes('日常')) {
-                    result.category = 'life';
-                }
-
-                // 知识领域判断
-                Object.keys(KNOWLEDGE_BASE).forEach(domain => {
-                    if (lowerText.includes(domain.toLowerCase()) ||
-                        KNOWLEDGE_BASE[domain].topics.some(topic => lowerText.includes(topic.toLowerCase()))) {
-                        result.domains.push(domain);
-                    }
-                });
-
-                return result;
             };
 
             const handleSubmit = async (e) => {
@@ -686,552 +840,142 @@
                 if (!inputValue.trim()) return;
 
                 const userMessage = inputValue;
-                addMessage(userMessage, 'user');
+                setMessages(prev => [...prev, {
+                    id: Date.now(),
+                    role: 'user',
+                    content: userMessage
+                }]);
                 setInputValue('');
                 setIsTyping(true);
 
-                await new Promise(resolve => setTimeout(resolve, 1200 + Math.random() * 1500));
+                // 模拟AI思考和生成回复
+                await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000));
 
-                const parsed = parseInput(userMessage);
-                let response = '';
+                const aiResponse = generateAIResponse(userMessage, messages);
 
-                switch (parsed.type) {
-                    case 'todo':
-                        handleAddTodo(parsed);
-                        response = generateTodoResponse(parsed);
-                        break;
-                    case 'idea':
-                        handleAddIdea(parsed);
-                        response = generateIdeaResponse(parsed);
-                        break;
-                    case 'reminder':
-                        handleAddReminder(parsed);
-                        response = generateReminderResponse(parsed);
-                        break;
-                    case 'create':
-                        response = await handleCreateContent(parsed);
-                        break;
-                    case 'complete':
-                        response = await handleCompleteTask(parsed);
-                        break;
-                    case 'learn':
-                        response = generateLearnResponse(parsed);
-                        break;
-                    case 'suggest':
-                        response = generateSuggestResponse(parsed);
-                        break;
-                    default:
-                        response = await handleGeneralQuery(parsed);
-                }
-
-                addMessage(response, 'assistant');
+                setMessages(prev => [...prev, {
+                    id: Date.now(),
+                    role: 'assistant',
+                    content: aiResponse
+                }]);
                 setIsTyping(false);
             };
 
-            const handleAddTodo = (parsed) => {
-                const todo = {
-                    id: Date.now(),
-                    title: parsed.content,
-                    priority: parsed.priority,
-                    dueDate: parsed.dueDate,
-                    reminderDate: parsed.reminderDate,
-                    completed: false,
-                    domains: parsed.domains,
-                    createdAt: new Date().toISOString()
+            const handleSkillClick = (skill) => {
+                const skillPrompts = {
+                    '任务管理': '我想使用任务管理功能',
+                    '灵感记录': '我想记录一个灵感',
+                    '知识问答': '我想问一个问题',
+                    '智能翻译': '我需要翻译',
+                    '计算工具': '我需要计算',
+                    '时间管理': '我想设置日程提醒',
+                    '学习助手': '我想制定学习计划',
+                    '健康管理': '我想管理健康',
+                    '天气查询': '查询天气',
+                    '新闻资讯': '获取新闻'
                 };
-                setTodos(prev => [todo, ...prev]);
+
+                const prompt = skillPrompts[skill.title] || `我想使用${skill.title}功能`;
+                setInputValue(prompt);
             };
 
-            const generateTodoResponse = (parsed) => {
-                const priorityText = parsed.priority === 'high' ? '⚡ 高优先级' : parsed.priority === 'low' ? '📝 普通优先级' : '📋 中等优先级';
-                const timeText = parsed.dueDate ? `，截止时间：${new Date(parsed.dueDate).toLocaleDateString('zh-CN')}` : '';
-                const domainsText = parsed.domains.length > 0 ? `\n📚 相关领域：${parsed.domains.join('、')}` : '';
-
-                return `✅ 已为你记录：${parsed.content}
-${priorityText}${timeText}${domainsText}
-
-我会在到期时提醒你完成！`;
-            };
-
-            const handleAddIdea = (parsed) => {
-                const idea = {
-                    id: Date.now(),
-                    title: parsed.content,
-                    category: parsed.category,
-                    tags: [],
-                    domains: parsed.domains,
-                    createdAt: new Date().toISOString()
-                };
-                setIdeas(prev => [idea, ...prev]);
-            };
-
-            const generateIdeaResponse = (parsed) => {
-                const categoryText = parsed.category === 'work' ? '💼 工作' : parsed.category === 'learning' ? '📚 学习' : '💭 生活';
-                const domainsText = parsed.domains.length > 0 ? `\n📚 关联知识领域：${parsed.domains.join('、')}` : '';
-
-                return `💡 已记录你的灵感：${parsed.content}
-分类：${categoryText}${domainsText}
-
-这个想法很有价值！我可以帮你：
-• 稍后整合这些灵感
-• 深化这个想法
-• 基于灵感创作内容`;
-            };
-
-            const handleAddReminder = (parsed) => {
-                const reminder = {
-                    id: Date.now(),
-                    title: parsed.content,
-                    reminderDate: parsed.dueDate || new Date(Date.now() + 3600000).toISOString(),
-                    notified: false,
-                    createdAt: new Date().toISOString()
-                };
-                setReminders(prev => [reminder, ...prev]);
-            };
-
-            const generateReminderResponse = (parsed) => {
-                const timeText = parsed.dueDate ? new Date(parsed.dueDate).toLocaleString('zh-CN') : '一小时后';
-                return `🔔 已设置提醒：${parsed.content}
-提醒时间：${timeText}
-
-我会准时提醒你！`;
-            };
-
-            const handleCreateContent = async (parsed) => {
-                const relevantIdeas = ideas.filter(idea =>
-                    parsed.content.toLowerCase().includes(idea.title.toLowerCase()) ||
-                    idea.title.toLowerCase().includes('技术') ||
-                    idea.title.toLowerCase().includes('想法') ||
-                    idea.domains.some(domain => parsed.content.toLowerCase().includes(domain.toLowerCase()))
-                ).slice(0, 5);
-
-                if (relevantIdeas.length === 0) {
-                    return `📝 你希望我创作什么内容？
-
-目前我记录了 ${ideas.length} 个灵感，你可以：
-• 告诉我你想写关于什么主题
-• 让我基于特定灵感创作
-• 或者先记录一些想法`;
-                }
-
-                const draft = generateDraft(parsed.content, relevantIdeas);
-                const response = `✨ 基于你的 ${relevantIdeas.length} 个相关灵感，我为你准备了以下内容草稿：
-
-${draft}
-
-你觉得怎么样？我可以根据你的反馈继续调整。`;
-                return response;
-            };
-
-            const generateDraft = (request, ideas) => {
-                const ideaTexts = ideas.map((idea, index) => `${index + 1}. ${idea.title}`).join('\n');
-                return `# ${request.replace(/帮我写|创作|生成|整理成|深度|一篇/g, '').trim()}
-
-## 基于你的灵感
-
-${ideaTexts}
-
-## 深度分析
-
-基于以上想法，这篇文章的核心要点包括：
-
-### 创新亮点
-• 结合你记录的多个灵感，形成独特的视角
-• 融合多领域知识，提供全面的解决方案
-• 基于实际经验，确保内容的可行性
-
-### 实用价值
-• 提供具体的实施步骤和建议
-• 结合当前行业趋势，增加前瞻性
-• 考虑实际应用场景，增强可操作性
-
-### 核心观点
-${ideas.slice(0, 3).map((idea, i) => `
-**${i + 1}. ${idea.title}**
-这个想法体现了你对${idea.domains.join('、')}领域的深入思考。
-`).join('')}
-
-## 建议结构
-
-### 引言（约300字）
-• 阐述背景和重要性
-• 引出核心问题
-• 展示文章价值
-
-### 主体部分（约1500-2000字）
-**第一部分：现象分析**
-• 当前现状描述
-• 存在的问题
-• 发展趋势
-
-**第二部分：深度思考**
-• 核心观点阐述
-• 理论支撑
-• 案例分析
-
-**第三部分：实践路径**
-• 具体实施步骤
-• 注意事项
-• 风险控制
-
-### 结论（约300字）
-• 总结核心观点
-• 提出建议
-• 展望未来
-
-*（这是根据你的灵感和我的知识库生成的深度初稿，字数约2000-2500字。你可以告诉我需要调整哪些部分，或者让我扩展某些内容。）*`;
-            };
-
-            const handleCompleteTask = async (parsed) => {
-                const matchedTodo = todos.find(todo =>
-                    parsed.content.toLowerCase().includes(todo.title.toLowerCase().slice(0, 10)) ||
-                    todo.title.toLowerCase().includes('完成')
-                );
-
-                if (matchedTodo) {
-                    setTodos(prev => prev.map(todo =>
-                        todo.id === matchedTodo.id ? { ...todo, completed: true } : todo
-                    ));
-                    return `🎉 太棒了！你完成了：${matchedTodo.title}
-
-继续保持！今天已经完成了 ${todos.filter(t => t.completed).length + 1} 个任务。`;
-                }
-
-                return `🤔 我没有找到对应的任务。你想完成哪个任务？
-
-你的待办任务有：
-${todos.filter(t => !t.completed).slice(0, 5).map(t => `• ${t.title}`).join('\n')}`;
-            };
-
-            const generateLearnResponse = (parsed) => {
-                if (parsed.domains.length === 0) {
-                    return `📚 我可以为你介绍以下领域的知识：
-
-${Object.keys(KNOWLEDGE_BASE).map(d => `• ${d}：${learningProgress[d].toFixed(0)}% 掌握度`).join('\n')}
-
-告诉我你对哪个领域感兴趣，我会根据我所学的知识为你解答！`;
-                }
-
-                const domain = parsed.domains[0];
-                const progress = learningProgress[domain];
-                const base = KNOWLEDGE_BASE[domain];
-                const recentKnowledge = knowledge[domain];
-
-                return `📚 关于${domain}领域，我的知识储备为 ${progress.toFixed(0)}%
-
-核心话题：
-${base.topics.map(t => `• ${t}`).join('\n')}
-
-关键洞察：
-${base.insights.map(i => `• ${i}`).join('\n')}
-
-${recentKnowledge?.recentInsight ? `\n最新学习心得：\n${recentKnowledge.recentInsight}\n（关于${recentKnowledge.recentTopic}）` : ''}
-
-我正在持续学习这个领域的最新内容，如果你想深入了解某个具体话题，可以告诉我！`;
-            };
-
-            const generateSuggestResponse = (parsed) => {
-                const suggestions = [];
-                const pendingTodos = todos.filter(t => !t.completed);
-
-                // 基于任务的建议
-                if (pendingTodos.length > 0) {
-                    const highPriorityTodos = pendingTodos.filter(t => t.priority === 'high');
-                    if (highPriorityTodos.length > 0) {
-                        suggestions.push(`🎯 优先处理：${highPriorityTodos[0].title}`);
-                    }
-
-                    if (pendingTodos.length > 5) {
-                        suggestions.push(`📊 时间管理：当前有${pendingTodos.length}个待办任务，建议使用番茄工作法提高效率`);
-                    }
-                }
-
-                // 基于灵感的建议
-                if (ideas.length >= 3) {
-                    suggestions.push(`✨ 创意整合：你有${ideas.length}个灵感，我可以帮你整合成完整的方案或文章`);
-                }
-
-                // 基于知识的建议
-                const topDomains = Object.entries(learningProgress)
-                    .filter(([_, value]) => value > 30)
-                    .sort((a, b) => b[1] - a[1])
-                    .slice(0, 2);
-
-                if (topDomains.length > 0) {
-                    suggestions.push(`🧠 知识应用：基于我在${topDomains.map(d => d[0]).join('、')}领域的知识，建议关注相关机会`);
-                }
-
-                // 基于时间的建议
-                const hour = new Date().getHours();
-                if (hour >= 9 && hour <= 11) {
-                    suggestions.push(`⏰ 黄金时段：现在是上午，适合处理重要且需要深度思考的任务`);
-                } else if (hour >= 14 && hour <= 16) {
-                    suggestions.push(`⏰ 高效时段：下午适合处理具体执行和协作类任务`);
-                } else if (hour >= 19 && hour <= 21) {
-                    suggestions.push(`⏰ 反思时段：晚上适合回顾总结、规划明天`);
-                }
-
-                if (suggestions.length === 0) {
-                    return `🤔 基于当前情况，我有以下建议：
-
-• 保持记录灵感的好习惯
-• 定期回顾和学习新知识
-• 设定清晰的目标和计划
-
-有什么具体需要我帮助的吗？`;
-                }
-
-                return `💭 给你的一些建议：
-
-${suggestions.join('\n\n')}
-
-需要我深入解释某些建议吗？或者有其他需要帮助的？`;
-            };
-
-            const handleGeneralQuery = async (parsed) => {
-                const text = parsed.content.toLowerCase();
-
-                if (text.includes('统计') || text.includes('多少') || text.includes('状态')) {
-                    const pendingTodos = todos.filter(t => !t.completed).length;
-                    const completedTodos = todos.filter(t => t.completed).length;
-
-                    return `📊 当前状态：
-
-📝 待办任务：${pendingTodos} 个
-✅ 已完成任务：${completedTodos} 个
-💡 记录的灵感：${ideas.length} 个
-🔔 设置的提醒：${reminders.length} 个
-🧠 知识库容量：${Object.values(learningProgress).reduce((a, b) => a + b, 0).toFixed(0)}%
-
-继续保持，你做得很棒！`;
-                }
-
-                if (text.includes('待办') || text.includes('任务')) {
-                    const pendingTodos = todos.filter(t => !t.completed).slice(0, 5);
-                    if (pendingTodos.length === 0) {
-                        return `🎉 太好了！你现在没有待办任务！
-
-需要我帮你添加新的任务吗？`;
-                    }
-                    return `📋 你当前的待办任务：
-
-${pendingTodos.map((t, i) => `${i + 1}. ${t.title}${t.dueDate ? ` (${new Date(t.dueDate).toLocaleDateString('zh-CN')})` : ''}`).join('\n')}
-
-需要我帮你处理这些任务吗？`;
-                }
-
-                if (text.includes('灵感') || text.includes('想法')) {
-                    const recentIdeas = ideas.slice(0, 5);
-                    if (recentIdeas.length === 0) {
-                        return `💡 你还没有记录任何灵感。
-
-有什么想法都可以告诉我，我会帮你记录并整理！`;
-                    }
-                    return `💡 你记录的灵感：
-
-${recentIdeas.map((idea, i) => `${i + 1}. ${idea.title}${idea.domains.length > 0 ? ` [${idea.domains.join(', ')}]` : ''}`).join('\n')}
-
-需要我基于这些灵感创作内容吗？`;
-                }
-
-                // 默认处理
-                return `我理解你想说：${parsed.content}
-
-让我来帮你处理...
-
-• 如果这是任务，我会记录下来
-• 如果是灵感，我会为你保存
-• 如果是提醒，我会准时通知你
-• 如果是学习需求，我会基于我的知识库回答
-
-${parsed.domains.length > 0 ? `\n我注意到这与${parsed.domains.join('、')}领域相关，我已经建立了知识关联！` : ''}
-
-需要我进一步协助吗？`;
-            };
-
-            const addMessage = (content, type = 'user') => {
-                const newMessage = {
-                    id: Date.now(),
-                    content,
-                    type,
-                    timestamp: new Date().toISOString()
-                };
-                setMessages(prev => [...prev, newMessage]);
-            };
-
-            const handleQuickAction = (action) => {
-                setInputValue(action);
-            };
-
-            const getPendingTodos = () => todos.filter(t => !t.completed);
-            const getRecentIdeas = () => ideas.slice(0, 5);
+            if (!mounted) return <div className="container">加载中...</div>;
 
             return (
-                <div class="app-container">
-                    <div class="main-chat">
-                        <div class="date-display">
-                            <h1 class="time-display">
-                                {new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
-                            </h1>
-                            <p>{new Date().toLocaleDateString('zh-CN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                        </div>
-
-                        {isLearning && (
-                            <div className="message learning">
-                                <div className="message-content">
-                                    🧠 正在学习新知识...
-                                    我正在阅读最新的金融、AI、科技等领域内容，不断提升自己的知识储备。
-                                </div>
+                <div className="container">
+                    <div className="header">
+                        <div className="header-left">
+                            <div className="avatar">🤖</div>
+                            <div className="title">
+                                <h1>AI智能数字人秘书</h1>
+                                <p>10+种智能技能，随时待命</p>
                             </div>
-                        )}
-
-                        {messages.length === 0 && (
-                            <div class="quick-actions">
-                                <button class="quick-action" onClick={() => handleQuickAction('明天下午3点有个重要会议要参加')}>明天下午3点有个重要会议要参加</button>
-                                <button class="quick-action" onClick={() => handleQuickAction('突然想到一个关于AI在教育中的应用的想法')}>突然想到一个关于AI在教育中的应用的想法</button>
-                                <button class="quick-action" onClick={() => handleQuickAction('最近金融市场的变化给了我一些投资启发')}>最近金融市场的变化给了我一些投资启发</button>
-                                <button class="quick-action" onClick={() => handleQuickAction('帮我把关于AI技术的想法整理成一篇深度文章')}>帮我把关于AI技术的想法整理成一篇深度文章</button>
-                                <button class="quick-action" onClick={() => handleQuickAction('我想了解AI领域的最新知识')}>我想了解AI领域的最新知识</button>
-                                <button class="quick-action" onClick={() => handleQuickAction('给我一些建议')}>给我一些建议</button>
-                            </div>
-                        )}
-
-                        <div class="messages">
-                            {messages.map((message) => (
-                                <div key={message.id} class={`message ${message.type}`}>
-                                    <div class="message-content">{message.content}</div>
-                                </div>
-                            ))}
-                            {isTyping && (
-                                <div class="message assistant">
-                                    <div class="typing-indicator">
-                                        <span></span>
-                                        <span></span>
-                                        <span></span>
-                                    </div>
-                                </div>
-                            )}
-                            <div ref={messagesEndRef} />
                         </div>
-
-                        <div class="input-area">
-                            <form onSubmit={handleSubmit} class="input-group">
-                                <textarea
-                                    class="chat-input"
-                                    placeholder="用自然语言告诉我你的想法、任务、需求或问题..."
-                                    value={inputValue}
-                                    onChange={(e) => setInputValue(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && !e.shiftKey) {
-                                            e.preventDefault();
-                                            handleSubmit(e);
-                                        }
-                                    }}
-                                />
-                                <button type="submit" class="send-btn">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <line x1="22" y1="2" x2="11" y2="13"></line>
-                                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                                    </svg>
-                                </button>
-                            </form>
-                        </div>
+                        <div className="status-badge">✅ 在线</div>
                     </div>
 
-                    <div class="sidebar">
-                        <div class="avatar-container">
-                            <div class="avatar">🤖</div>
-                        </div>
-                        <div class="assistant-name">智能数字人秘书</div>
-                        <div class="assistant-status"><span></span>在线 • 持续学习中</div>
+                    <div className="chat-area">
+                        {messages.map((msg) => (
+                            <div key={msg.id} className={`message ${msg.role}`}>
+                                {msg.role === 'assistant' && (
+                                    <div className="message-avatar">
+                                        <i className="ri-robot-line" style={{ fontSize: 20 }}></i>
+                                    </div>
+                                )}
+                                <div className="message-content">
+                                    <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', margin: 0 }}>
+                                        {msg.content}
+                                    </pre>
+                                </div>
+                                {msg.role === 'user' && (
+                                    <div className="message-avatar">
+                                        <i className="ri-user-line" style={{ fontSize: 20 }}></i>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
 
-                        <div class="section">
-                            <div class="section-title">📋 待办事项 ({getPendingTodos().length})</div>
-                            {getPendingTodos().length === 0 ? (
-                                <div class="empty-state">✨ 没有待办任务</div>
-                            ) : (
-                                getPendingTodos().slice(0, 4).map(todo => (
-                                    <div key={todo.id} class="card" onClick={() => setInputValue(`完成 ${todo.title}`)}>
-                                        <div class="card-content">
-                                            <div>
-                                                <div class="card-title">{todo.title}</div>
-                                                {todo.dueDate && <div class="card-meta">截止: {new Date(todo.dueDate).toLocaleDateString('zh-CN')}</div>}
+                        {isTyping && (
+                            <div className="message assistant">
+                                <div className="message-avatar">
+                                    <i className="ri-robot-line" style={{ fontSize: 20 }}></i>
+                                </div>
+                                <div className="message-content">
+                                    <div className="typing-indicator">
+                                        <span></span>
+                                        <span></span>
+                                        <span></span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        <div ref={messagesEndRef} />
+
+                        {messages.length === 1 && (
+                            <div className="welcome-skills">
+                                <h3>🚀 快速开始 - 选择技能</h3>
+                                <div className="skills-grid">
+                                    {skills.map((skill, index) => (
+                                        <div
+                                            key={index}
+                                            className="skill-card"
+                                            onClick={() => handleSkillClick(skill)}
+                                        >
+                                            <div className="skill-icon">
+                                                <i className={skill.icon}></i>
                                             </div>
-                                            <span class={`tag tag-${todo.priority}`}>{todo.priority === 'high' ? '高' : todo.priority === 'medium' ? '中' : '低'}</span>
+                                            <div className="skill-info">
+                                                <h4>{skill.title}</h4>
+                                                <p>{skill.desc}</p>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-
-                        <div class="section">
-                            <div class="section-title">💡 灵感想法 ({ideas.length})</div>
-                            {ideas.length === 0 ? (
-                                <div class="empty-state">💭 暂无灵感记录</div>
-                            ) : (
-                                getRecentIdeas().map(idea => (
-                                    <div key={idea.id} class="card" onClick={() => setInputValue(`帮我把关于${idea.title}的灵感整理成内容`)}>
-                                        <div class="card-content">
-                                            <div class="card-title">{idea.title}</div>
-                                            <div class="card-meta">{idea.category}</div>
-                                            {idea.domains.length > 0 && (
-                                                <div>
-                                                    {idea.domains.map(d => <span key={d} class="knowledge-tag">{d}</span>)}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-
-                        <div class="section">
-                            <div class="section-title">🧠 知识学习进度</div>
-                            <div class="knowledge-display">
-                                {Object.entries(learningProgress).map(([domain, progress]) => (
-                                    <div key={domain} style={{ marginBottom: '12px' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '13px' }}>
-                                            <span>{domain}</span>
-                                            <span>{progress.toFixed(0)}%</span>
-                                        </div>
-                                        <div class="learning-progress">
-                                            <div class="learning-progress-bar" style={{ width: `${progress}%` }}></div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div class="section">
-                            <div class="section-title">📊 今日统计</div>
-                            <div class="stats-grid">
-                                <div class="stat-item">
-                                    <div class="stat-number">{todos.filter(t => t.completed).length}</div>
-                                    <div class="stat-label">已完成</div>
-                                </div>
-                                <div class="stat-item">
-                                    <div class="stat-number">{getPendingTodos().length}</div>
-                                    <div class="stat-label">待处理</div>
-                                </div>
-                                <div class="stat-item">
-                                    <div class="stat-number">{ideas.filter(i => {
-                                        const today = new Date().toDateString();
-                                        return new Date(i.createdAt).toDateString() === today;
-                                    }).length}</div>
-                                    <div class="stat-label">新灵感</div>
-                                </div>
-                                <div class="stat-item">
-                                    <div class="stat-number">{(Object.values(learningProgress).reduce((a, b) => a + b, 0) / 7).toFixed(0)}</div>
-                                    <div class="stat-label">知识度</div>
+                                    ))}
                                 </div>
                             </div>
-                        </div>
+                        )}
+                    </div>
+
+                    <div className="input-area">
+                        <form className="input-form" onSubmit={handleSubmit}>
+                            <input
+                                type="text"
+                                value={inputValue}
+                                onChange={(e) => setInputValue(e.target.value)}
+                                placeholder="输入您的问题或需求..."
+                                disabled={isTyping}
+                            />
+                            <button type="submit" disabled={isTyping || !inputValue.trim()}>
+                                {isTyping ? '思考中...' : '发送'}
+                            </button>
+                        </form>
                     </div>
                 </div>
             );
-        }
+        };
 
-        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
