@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>智能数字人秘书 - 自我学习版</title>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- 使用开发版 React 以便调试 -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
@@ -134,6 +135,7 @@
         .message-content {
             line-height: 1.8;
             font-size: 15px;
+            white-space: pre-wrap;
         }
         .message-content strong {
             color: #a5b4fc;
@@ -168,6 +170,7 @@
             transition: all 0.3s;
             resize: none;
             min-height: 56px;
+            font-family: inherit;
         }
         .chat-input:focus {
             border-color: #667eea;
@@ -386,47 +389,6 @@
             color: #94a3b8;
             margin-top: 4px;
         }
-        .suggestion-chip {
-            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%);
-            border: 1px solid rgba(99, 102, 241, 0.3);
-            color: #c4b5fd;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 13px;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: inline-block;
-            margin: 4px;
-        }
-        .suggestion-chip:hover {
-            background: linear-gradient(135deg, rgba(99, 102, 241, 0.4) 0%, rgba(139, 92, 246, 0.4) 100%);
-            transform: translateY(-2px);
-        }
-        .markdown-content {
-            font-size: 14px;
-            line-height: 1.7;
-        }
-        .markdown-content h1 { font-size: 20px; margin: 16px 0 12px; color: #e2e8f0; }
-        .markdown-content h2 { font-size: 18px; margin: 14px 0 10px; color: #e2e8f0; }
-        .markdown-content h3 { font-size: 16px; margin: 12px 0 8px; color: #e2e8f0; }
-        .markdown-content p { margin: 10px 0; }
-        .markdown-content ul { margin: 10px 0; padding-left: 20px; }
-        .markdown-content li { margin: 6px 0; }
-        .markdown-content code {
-            background: rgba(30, 41, 59, 0.8);
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: monospace;
-            font-size: 13px;
-        }
-        .markdown-content pre {
-            background: rgba(15, 23, 42, 0.9);
-            padding: 16px;
-            border-radius: 8px;
-            overflow-x: auto;
-            margin: 12px 0;
-            border: 1px solid rgba(99, 102, 241, 0.2);
-        }
         .draft-preview {
             background: rgba(15, 23, 42, 0.9);
             border: 2px dashed rgba(99, 102, 241, 0.4);
@@ -491,30 +453,6 @@
             }
         };
 
-        // 建议生成器
-        const SUGGESTION_ENGINE = {
-            finance: (todos) => [
-                '建议定期复盘投资组合',
-                '关注市场动态，及时调整策略',
-                '学习新的理财知识'
-            ],
-            ai: (todos) => [
-                '跟进最新AI技术发展',
-                '实践AI项目应用',
-                '参与AI社区讨论'
-            ],
-            productivity: (todos) => [
-                '优化时间管理',
-                '使用番茄工作法',
-                '定期回顾目标'
-            ],
-            creativity: (todos) => [
-                '定期记录灵感',
-                '跨领域学习激发创新',
-                '与他人交流想法'
-            ]
-        };
-
         function App() {
             const [messages, setMessages] = useState([]);
             const [todos, setTodos] = useState([]);
@@ -529,15 +467,6 @@
                 文学: 25,
                 艺术: 15,
                 新闻: 40
-            });
-            const [learningPreferences, setLearningPreferences] = useState({
-                金融: true,
-                AI: true,
-                科技: true,
-                体育: false,
-                文学: false,
-                艺术: false,
-                新闻: true
             });
             const [inputValue, setInputValue] = useState('');
             const [isTyping, setIsTyping] = useState(false);
@@ -598,32 +527,30 @@
 
                 // 模拟学习过程
                 Object.keys(KNOWLEDGE_BASE).forEach(category => {
-                    if (learningPreferences[category]) {
-                        const base = KNOWLEDGE_BASE[category];
-                        const randomInsight = base.insights[Math.floor(Math.random() * base.insights.length)];
-                        const randomTopic = base.topics[Math.floor(Math.random() * base.topics.length)];
+                    const base = KNOWLEDGE_BASE[category];
+                    const randomInsight = base.insights[Math.floor(Math.random() * base.insights.length)];
+                    const randomTopic = base.topics[Math.floor(Math.random() * base.topics.length)];
 
-                        setKnowledge(prev => ({
-                            ...prev,
-                            [category]: {
-                                ...prev[category],
-                                lastLearned: new Date().toISOString(),
-                                recentInsight: randomInsight,
-                                recentTopic: randomTopic,
-                                insights: [...(prev[category]?.insights || []), {
-                                    content: randomInsight,
-                                    topic: randomTopic,
-                                    timestamp: new Date().toISOString()
-                                }].slice(-10)
-                            }
-                        }));
+                    setKnowledge(prev => ({
+                        ...prev,
+                        [category]: {
+                            ...prev[category],
+                            lastLearned: new Date().toISOString(),
+                            recentInsight: randomInsight,
+                            recentTopic: randomTopic,
+                            insights: [...(prev[category]?.insights || []), {
+                                content: randomInsight,
+                                topic: randomTopic,
+                                timestamp: new Date().toISOString()
+                            }].slice(-10)
+                        }
+                    }));
 
-                        // 增加学习进度
-                        setLearningProgress(prev => ({
-                            ...prev,
-                            [category]: Math.min(100, prev[category] + Math.random() * 5)
-                        }));
-                    }
+                    // 增加学习进度
+                    setLearningProgress(prev => ({
+                        ...prev,
+                        [category]: Math.min(100, prev[category] + Math.random() * 5)
+                    }));
                 });
 
                 setTimeout(() => setIsLearning(false), 2000);
@@ -642,28 +569,20 @@
                 else if (hour < 14) greeting = '中午好';
                 else if (hour < 18) greeting = '下午好';
 
-                return `<div class="message-content">
-                    👋 <strong>${greeting}！</strong> 我是你的智能数字人秘书。
+                return `👋 ${greeting}！我是你的智能数字人秘书。
 
-                    我具备以下能力：
+我可以帮你：
+📝 智能记录：理解你的自然语言，自动分类
+💡 知识学习：持续学习金融、AI、科技等领域
+🔔 主动提醒：在关键时刻提醒你重要事项
+✨ 内容创作：基于你的灵感创作文章
 
-                    📝 <strong>智能记录</strong>：理解你的自然语言，自动分类为待办、灵感、提醒
-                    💡 <strong>知识学习</strong>：持续学习金融、AI、科技等领域，不断成长
-                    🔔 <strong>主动提醒</strong>：在关键时刻提醒你重要事项
-                    ✨ <strong>内容创作</strong>：基于你的灵感，创作文章、方案等
-                    🤔 <strong>建议反馈</strong>：基于所学知识，提供个性化建议
+你可以这样跟我交流：
+"明天下午3点有个重要会议"
+"突然想到一个关于AI的想法"
+"帮我把想法整理成一篇文章"
 
-                    <em>我可以这样帮你：</em>
-
-                    "明天下午3点有个重要会议要参加"
-                    "突然想到一个关于AI在教育中的应用的想法"
-                    "最近金融市场的变化给了我一些投资启发"
-                    "帮我把关于AI技术的想法整理成一篇深度文章"
-
-                    <strong>我正在持续学习中...</strong> 目前掌握了 ${Object.values(learningProgress).reduce((a, b) => a + b, 0) / 7}% 的知识容量。
-
-                    有什么我可以帮你的吗？
-                </div>`;
+有什么我可以帮你的吗？`;
             };
 
             const parseInput = (text) => {
@@ -695,12 +614,6 @@
                     '下周': () => {
                         const d = new Date();
                         d.setDate(d.getDate() + 7);
-                        return d;
-                    },
-                    '本周': () => {
-                        const d = new Date();
-                        const day = d.getDay() || 7;
-                        d.setDate(d.getDate() + (7 - day));
                         return d;
                     }
                 };
@@ -830,16 +743,14 @@
             };
 
             const generateTodoResponse = (parsed) => {
-                const priorityText = parsed.priority === 'high' ? '⚡ <strong>高优先级</strong>' : parsed.priority === 'low' ? '📝 <strong>普通优先级</strong>' : '📋 <strong>中等优先级</strong>';
+                const priorityText = parsed.priority === 'high' ? '⚡ 高优先级' : parsed.priority === 'low' ? '📝 普通优先级' : '📋 中等优先级';
                 const timeText = parsed.dueDate ? `，截止时间：${new Date(parsed.dueDate).toLocaleDateString('zh-CN')}` : '';
                 const domainsText = parsed.domains.length > 0 ? `\n📚 相关领域：${parsed.domains.join('、')}` : '';
 
-                return `<div class="message-content">
-                    ✅ 已为你记录：<span class="highlight">${parsed.content}</span>
-                    ${priorityText}${timeText}${domainsText}
+                return `✅ 已为你记录：${parsed.content}
+${priorityText}${timeText}${domainsText}
 
-                    我会在到期时提醒你完成！
-                </div>`;
+我会在到期时提醒你完成！`;
             };
 
             const handleAddIdea = (parsed) => {
@@ -858,17 +769,13 @@
                 const categoryText = parsed.category === 'work' ? '💼 工作' : parsed.category === 'learning' ? '📚 学习' : '💭 生活';
                 const domainsText = parsed.domains.length > 0 ? `\n📚 关联知识领域：${parsed.domains.join('、')}` : '';
 
-                return `<div class="message-content">
-                    💡 已记录你的灵感：<strong>${parsed.content}</strong>
-                    分类：${categoryText}${domainsText}
+                return `💡 已记录你的灵感：${parsed.content}
+分类：${categoryText}${domainsText}
 
-                    这个想法很有价值！我可以帮你：
-                    • 稍后整合这些灵感
-                    • 深化这个想法
-                    • 基于灵感创作内容
-
-                    ${parsed.domains.length > 0 ? `\n我注意到这个想法与${parsed.domains.join('、')}领域相关，我已经建立知识关联！` : ''}
-                </div>`;
+这个想法很有价值！我可以帮你：
+• 稍后整合这些灵感
+• 深化这个想法
+• 基于灵感创作内容`;
             };
 
             const handleAddReminder = (parsed) => {
@@ -884,12 +791,10 @@
 
             const generateReminderResponse = (parsed) => {
                 const timeText = parsed.dueDate ? new Date(parsed.dueDate).toLocaleString('zh-CN') : '一小时后';
-                return `<div class="message-content">
-                    🔔 已设置提醒：<strong>${parsed.content}</strong>
-                    提醒时间：${timeText}
+                return `🔔 已设置提醒：${parsed.content}
+提醒时间：${timeText}
 
-                    我会准时提醒你！
-                </div>`;
+我会准时提醒你！`;
             };
 
             const handleCreateContent = async (parsed) => {
@@ -901,24 +806,20 @@
                 ).slice(0, 5);
 
                 if (relevantIdeas.length === 0) {
-                    return `<div class="message-content">
-                        📝 你希望我创作什么内容？
+                    return `📝 你希望我创作什么内容？
 
-                        目前我记录了 ${ideas.length} 个灵感，你可以：
-                        • 告诉我你想写关于什么主题
-                        • 让我基于特定灵感创作
-                        • 或者先记录一些想法
-                    </div>`;
+目前我记录了 ${ideas.length} 个灵感，你可以：
+• 告诉我你想写关于什么主题
+• 让我基于特定灵感创作
+• 或者先记录一些想法`;
                 }
 
                 const draft = generateDraft(parsed.content, relevantIdeas);
-                const response = `<div class="message-content">
-                    ✨ 基于你的 ${relevantIdeas.length} 个相关灵感，我为你准备了以下内容草稿：
+                const response = `✨ 基于你的 ${relevantIdeas.length} 个相关灵感，我为你准备了以下内容草稿：
 
-                    <div class="draft-preview">${draft}</div>
+${draft}
 
-                    你觉得怎么样？我可以根据你的反馈继续调整。
-                </div>`;
+你觉得怎么样？我可以根据你的反馈继续调整。`;
                 return response;
             };
 
@@ -991,32 +892,24 @@ ${ideas.slice(0, 3).map((idea, i) => `
                     setTodos(prev => prev.map(todo =>
                         todo.id === matchedTodo.id ? { ...todo, completed: true } : todo
                     ));
-                    return `<div class="message-content">
-                        🎉 太棒了！你完成了：<strong>${matchedTodo.title}</strong>
+                    return `🎉 太棒了！你完成了：${matchedTodo.title}
 
-                        继续保持！今天已经完成了 ${todos.filter(t => t.completed).length + 1} 个任务。
-
-                        ${matchedTodo.domains.length > 0 ? `\n这个任务涉及${matchedTodo.domains.join('、')}领域，我在这个领域的知识储备为 ${matchedTodo.domains.map(d => learningProgress[d]).join('%、')}%。` : ''}
-                    </div>`;
+继续保持！今天已经完成了 ${todos.filter(t => t.completed).length + 1} 个任务。`;
                 }
 
-                return `<div class="message-content">
-                    🤔 我没有找到对应的任务。你想完成哪个任务？
+                return `🤔 我没有找到对应的任务。你想完成哪个任务？
 
-                    你的待办任务有：
-                    ${todos.filter(t => !t.completed).slice(0, 5).map(t => `• ${t.title}`).join('\n')}
-                </div>`;
+你的待办任务有：
+${todos.filter(t => !t.completed).slice(0, 5).map(t => `• ${t.title}`).join('\n')}`;
             };
 
             const generateLearnResponse = (parsed) => {
                 if (parsed.domains.length === 0) {
-                    return `<div class="message-content">
-                        📚 我可以为你介绍以下领域的知识：
+                    return `📚 我可以为你介绍以下领域的知识：
 
-                        ${Object.keys(KNOWLEDGE_BASE).map(d => `• ${d}：${LEARNING_PROGRESS[d]}% 掌握度`).join('\n')}
+${Object.keys(KNOWLEDGE_BASE).map(d => `• ${d}：${learningProgress[d].toFixed(0)}% 掌握度`).join('\n')}
 
-                        告诉我你对哪个领域感兴趣，我会根据我所学的知识为你解答！
-                    </div>`;
+告诉我你对哪个领域感兴趣，我会根据我所学的知识为你解答！`;
                 }
 
                 const domain = parsed.domains[0];
@@ -1024,19 +917,17 @@ ${ideas.slice(0, 3).map((idea, i) => `
                 const base = KNOWLEDGE_BASE[domain];
                 const recentKnowledge = knowledge[domain];
 
-                return `<div class="message-content">
-                    📚 关于<strong>${domain}</strong>领域，我的知识储备为 ${progress.toFixed(0)}%
+                return `📚 关于${domain}领域，我的知识储备为 ${progress.toFixed(0)}%
 
-                    <strong>核心话题：</strong>
-                    ${base.topics.map(t => `• ${t}`).join('\n')}
+核心话题：
+${base.topics.map(t => `• ${t}`).join('\n')}
 
-                    <strong>关键洞察：</strong>
-                    ${base.insights.map(i => `• ${i}`).join('\n')}
+关键洞察：
+${base.insights.map(i => `• ${i}`).join('\n')}
 
-                    ${recentKnowledge?.recentInsight ? `\n<strong>最新学习心得：</strong>\n${recentKnowledge.recentInsight}\n（关于${recentKnowledge.recentTopic}）` : ''}
+${recentKnowledge?.recentInsight ? `\n最新学习心得：\n${recentKnowledge.recentInsight}\n（关于${recentKnowledge.recentTopic}）` : ''}
 
-                    <em>我正在持续学习这个领域的最新内容，如果你想深入了解某个具体话题，可以告诉我！</em>
-                </div>`;
+我正在持续学习这个领域的最新内容，如果你想深入了解某个具体话题，可以告诉我！`;
             };
 
             const generateSuggestResponse = (parsed) => {
@@ -1047,17 +938,17 @@ ${ideas.slice(0, 3).map((idea, i) => `
                 if (pendingTodos.length > 0) {
                     const highPriorityTodos = pendingTodos.filter(t => t.priority === 'high');
                     if (highPriorityTodos.length > 0) {
-                        suggestions.push(`🎯 <strong>优先处理：</strong>${highPriorityTodos[0].title}`);
+                        suggestions.push(`🎯 优先处理：${highPriorityTodos[0].title}`);
                     }
 
                     if (pendingTodos.length > 5) {
-                        suggestions.push(`📊 <strong>时间管理：</strong>当前有${pendingTodos.length}个待办任务，建议使用番茄工作法提高效率`);
+                        suggestions.push(`📊 时间管理：当前有${pendingTodos.length}个待办任务，建议使用番茄工作法提高效率`);
                     }
                 }
 
                 // 基于灵感的建议
                 if (ideas.length >= 3) {
-                    suggestions.push(`✨ <strong>创意整合：</strong>你有${ideas.length}个灵感，我可以帮你整合成完整的方案或文章`);
+                    suggestions.push(`✨ 创意整合：你有${ideas.length}个灵感，我可以帮你整合成完整的方案或文章`);
                 }
 
                 // 基于知识的建议
@@ -1067,38 +958,34 @@ ${ideas.slice(0, 3).map((idea, i) => `
                     .slice(0, 2);
 
                 if (topDomains.length > 0) {
-                    suggestions.push(`🧠 <strong>知识应用：</strong>基于我在${topDomains.map(d => d[0]).join('、')}领域的知识，建议关注相关机会`);
+                    suggestions.push(`🧠 知识应用：基于我在${topDomains.map(d => d[0]).join('、')}领域的知识，建议关注相关机会`);
                 }
 
                 // 基于时间的建议
                 const hour = new Date().getHours();
                 if (hour >= 9 && hour <= 11) {
-                    suggestions.push(`⏰ <strong>黄金时段：</strong>现在是上午，适合处理重要且需要深度思考的任务`);
+                    suggestions.push(`⏰ 黄金时段：现在是上午，适合处理重要且需要深度思考的任务`);
                 } else if (hour >= 14 && hour <= 16) {
-                    suggestions.push(`⏰ <strong>高效时段：</strong>下午适合处理具体执行和协作类任务`);
+                    suggestions.push(`⏰ 高效时段：下午适合处理具体执行和协作类任务`);
                 } else if (hour >= 19 && hour <= 21) {
-                    suggestions.push(`⏰ <strong>反思时段：</strong>晚上适合回顾总结、规划明天`);
+                    suggestions.push(`⏰ 反思时段：晚上适合回顾总结、规划明天`);
                 }
 
                 if (suggestions.length === 0) {
-                    return `<div class="message-content">
-                        🤔 基于当前情况，我有以下建议：
+                    return `🤔 基于当前情况，我有以下建议：
 
-                        • 保持记录灵感的好习惯
-                        • 定期回顾和学习新知识
-                        • 设定清晰的目标和计划
+• 保持记录灵感的好习惯
+• 定期回顾和学习新知识
+• 设定清晰的目标和计划
 
-                        有什么具体需要我帮助的吗？
-                    </div>`;
+有什么具体需要我帮助的吗？`;
                 }
 
-                return `<div class="message-content">
-                    💭 给你的一些建议：
+                return `💭 给你的一些建议：
 
-                    ${suggestions.join('\n\n')}
+${suggestions.join('\n\n')}
 
-                    需要我深入解释某些建议吗？或者有其他需要帮助的？
-                </div>`;
+需要我深入解释某些建议吗？或者有其他需要帮助的？`;
             };
 
             const handleGeneralQuery = async (parsed) => {
@@ -1108,70 +995,68 @@ ${ideas.slice(0, 3).map((idea, i) => `
                     const pendingTodos = todos.filter(t => !t.completed).length;
                     const completedTodos = todos.filter(t => t.completed).length;
 
-                    return `<div class="message-content">
-                        📊 <strong>当前状态：</strong>
+                    return `📊 当前状态：
 
-                        📝 待办任务：${pendingTodos} 个
-                        ✅ 已完成任务：${completedTodos} 个
-                        💡 记录的灵感：${ideas.length} 个
-                        🔔 设置的提醒：${reminders.length} 个
-                        🧠 知识库容量：${Object.values(learningProgress).reduce((a, b) => a + b, 0).toFixed(0)}%
+📝 待办任务：${pendingTodos} 个
+✅ 已完成任务：${completedTodos} 个
+💡 记录的灵感：${ideas.length} 个
+🔔 设置的提醒：${reminders.length} 个
+🧠 知识库容量：${Object.values(learningProgress).reduce((a, b) => a + b, 0).toFixed(0)}%
 
-                        <em>继续保持，你做得很棒！</em>
-                    </div>`;
+继续保持，你做得很棒！`;
                 }
 
                 if (text.includes('待办') || text.includes('任务')) {
                     const pendingTodos = todos.filter(t => !t.completed).slice(0, 5);
                     if (pendingTodos.length === 0) {
-                        return `<div class="message-content">
-                            🎉 太好了！你现在没有待办任务！
+                        return `🎉 太好了！你现在没有待办任务！
 
-                            需要我帮你添加新的任务吗？
-                        </div>`;
+需要我帮你添加新的任务吗？`;
                     }
-                    return `<div class="message-content">
-                        📋 你当前的待办任务：
+                    return `📋 你当前的待办任务：
 
-                        ${pendingTodos.map((t, i) => `${i + 1}. ${t.title}${t.dueDate ? ` (${new Date(t.dueDate).toLocaleDateString('zh-CN')})` : ''}`).join('\n')}
+${pendingTodos.map((t, i) => `${i + 1}. ${t.title}${t.dueDate ? ` (${new Date(t.dueDate).toLocaleDateString('zh-CN')})` : ''}`).join('\n')}
 
-                        需要我帮你处理这些任务吗？
-                    </div>`;
+需要我帮你处理这些任务吗？`;
                 }
 
                 if (text.includes('灵感') || text.includes('想法')) {
                     const recentIdeas = ideas.slice(0, 5);
                     if (recentIdeas.length === 0) {
-                        return `<div class="message-content">
-                            💡 你还没有记录任何灵感。
+                        return `💡 你还没有记录任何灵感。
 
-                            有什么想法都可以告诉我，我会帮你记录并整理！
-                        </div>`;
+有什么想法都可以告诉我，我会帮你记录并整理！`;
                     }
-                    return `<div class="message-content">
-                        💡 你记录的灵感：
+                    return `💡 你记录的灵感：
 
-                        ${recentIdeas.map((idea, i) => `${i + 1}. ${idea.title}${idea.domains.length > 0 ? ` [${idea.domains.join(', ')}]` : ''}`).join('\n')}
+${recentIdeas.map((idea, i) => `${i + 1}. ${idea.title}${idea.domains.length > 0 ? ` [${idea.domains.join(', ')}]` : ''}`).join('\n')}
 
-                        需要我基于这些灵感创作内容吗？
-                    </div>`;
+需要我基于这些灵感创作内容吗？`;
                 }
 
                 // 默认处理
-                return `<div class="message-content">
-                    我理解你想说：<strong>${parsed.content}</strong>
+                return `我理解你想说：${parsed.content}
 
-                    让我来帮你处理...
+让我来帮你处理...
 
-                    • 如果这是任务，我会记录下来
-                    • 如果是灵感，我会为你保存
-                    • 如果是提醒，我会准时通知你
-                    • 如果是学习需求，我会基于我的知识库回答
+• 如果这是任务，我会记录下来
+• 如果是灵感，我会为你保存
+• 如果是提醒，我会准时通知你
+• 如果是学习需求，我会基于我的知识库回答
 
-                    ${parsed.domains.length > 0 ? `\n我注意到这与${parsed.domains.join('、')}领域相关，我已经建立了知识关联！` : ''}
+${parsed.domains.length > 0 ? `\n我注意到这与${parsed.domains.join('、')}领域相关，我已经建立了知识关联！` : ''}
 
-                    需要我进一步协助吗？
-                </div>`;
+需要我进一步协助吗？`;
+            };
+
+            const addMessage = (content, type = 'user') => {
+                const newMessage = {
+                    id: Date.now(),
+                    content,
+                    type,
+                    timestamp: new Date().toISOString()
+                };
+                setMessages(prev => [...prev, newMessage]);
             };
 
             const handleQuickAction = (action) => {
@@ -1194,7 +1079,7 @@ ${ideas.slice(0, 3).map((idea, i) => `
                         {isLearning && (
                             <div className="message learning">
                                 <div className="message-content">
-                                    🧠 <strong>正在学习新知识...</strong><br/>
+                                    🧠 正在学习新知识...
                                     我正在阅读最新的金融、AI、科技等领域内容，不断提升自己的知识储备。
                                 </div>
                             </div>
@@ -1214,7 +1099,7 @@ ${ideas.slice(0, 3).map((idea, i) => `
                         <div class="messages">
                             {messages.map((message) => (
                                 <div key={message.id} class={`message ${message.type}`}>
-                                    <div class="message-content" dangerouslySetInnerHTML={{ __html: message.content }} />
+                                    <div class="message-content">{message.content}</div>
                                 </div>
                             ))}
                             {isTyping && (
@@ -1244,7 +1129,7 @@ ${ideas.slice(0, 3).map((idea, i) => `
                                     }}
                                 />
                                 <button type="submit" class="send-btn">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <line x1="22" y1="2" x2="11" y2="13"></line>
                                         <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
                                     </svg>
@@ -1336,7 +1221,7 @@ ${ideas.slice(0, 3).map((idea, i) => `
                                     <div class="stat-label">新灵感</div>
                                 </div>
                                 <div class="stat-item">
-                                    <div class="stat-number">{Object.values(learningProgress).reduce((a, b) => a + b, 0) / 7}</div>
+                                    <div class="stat-number">{(Object.values(learningProgress).reduce((a, b) => a + b, 0) / 7).toFixed(0)}</div>
                                     <div class="stat-label">知识度</div>
                                 </div>
                             </div>
