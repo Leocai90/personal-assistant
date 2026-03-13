@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人助理 - Personal Assistant</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 16px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        .header h1 { font-size: 28px; margin-bottom: 10px; }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        .stat-card:hover { transform: translateY(-5px); }
+        .stat-card h3 { color: #666; font-size: 14px; margin-bottom: 10px; }
+        .stat-card .number { font-size: 36px; font-weight: bold; }
+        .main-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 30px;
+        }
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .card h2 { font-size: 22px; margin-bottom: 20px; color: #333; display: flex; align-items: center; gap: 10px; }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); }
+        .btn-sm { padding: 8px 16px; font-size: 12px; }
+        .btn-danger { background: #ef4444; }
+        .input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 12px;
+            transition: border-color 0.2s;
+        }
+        .input:focus { outline: none; border-color: #667eea; }
+        textarea.input { min-height: 100px; resize: vertical; }
+        .todo-item {
+            padding: 16px;
+            border-left: 4px solid;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            background: #f9fafb;
+            transition: all 0.2s;
+        }
+        .todo-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .todo-item.high { border-left-color: #ef4444; }
+        .todo-item.medium { border-left-color: #f59e0b; }
+        .todo-item.low { border-left-color: #10b981; }
+        .todo-item.completed { opacity: 0.6; text-decoration: line-through; }
+        .idea-item {
+            padding: 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            transition: all 0.2s;
+        }
+        .idea-item:hover { border-color: #667eea; }
+        .tag {
+            display: inline-block;
+            background: #f3f4f6;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin: 4px;
+        }
+        .reminder {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border-left: 4px solid #f59e0b;
+        }
+        .reminder.urgent { background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border-left-color: #ef4444; }
+        .flex { display: flex; gap: 10px; align-items: center; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+        .text-sm { font-size: 14px; }
+        .text-gray { color: #6b7280; }
+        .text-red { color: #ef4444; }
+        .text-green { color: #10b981; }
+        .form-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .form-container {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        select.input { cursor: pointer; }
+        .badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .badge-high { background: #fee2e2; color: #dc2626; }
+        .badge-medium { background: #fef3c7; color: #d97706; }
+        .badge-low { background: #d1fae5; color: #059669; }
+        .category-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .category-general { background: #dbeafe; color: #1d4ed8; }
+        .category-project { background: #dcfce7; color: #15803d; }
+        .category-learning { background: #fce7f3; color: #be185d; }
+        .category-life { background: #fef9c3; color: #a16207; }
+        .category-business { background: #fee2e2; color: #dc2626; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        function App() {
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [todos, setTodos] = useState([]);
+            const [ideas, setIdeas] = useState([]);
+            const [showTodoForm, setShowTodoForm] = useState(false);
+            const [showIdeaForm, setShowIdeaForm] = useState(false);
+
+            useEffect(() => {
+                const savedTodos = localStorage.getItem('assistant_todos');
+                const savedIdeas = localStorage.getItem('assistant_ideas');
+                if (savedTodos) setTodos(JSON.parse(savedTodos));
+                if (savedIdeas) setIdeas(JSON.parse(savedIdeas));
+            }, []);
+
+            useEffect(() => {
+                localStorage.setItem('assistant_todos', JSON.stringify(todos));
+            }, [todos]);
+
+            useEffect(() => {
+                localStorage.setItem('assistant_ideas', JSON.stringify(ideas));
+            }, [ideas]);
+
+            const addTodo = (todo) => {
+                setTodos([{ ...todo, id: Date.now(), completed: false, createdAt: new Date().toISOString() }, ...todos]);
+            };
+
+            const toggleTodo = (id) => {
+                setTodos(todos.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+            };
+
+            const deleteTodo = (id) => {
+                setTodos(todos.filter(t => t.id !== id));
+            };
+
+            const addIdea = (idea) => {
+                setIdeas([{ ...idea, id: Date.now(), createdAt: new Date().toISOString() }, ...ideas]);
+            };
+
+            const deleteIdea = (id) => {
+                setIdeas(ideas.filter(i => i.id !== id));
+            };
+
+            const getReminders = () => {
+                const now = new Date();
+                return todos.filter(t => {
+                    if (!t.reminderDate || t.completed) return false;
+                    const reminderDate = new Date(t.reminderDate);
+                    const daysUntil = Math.ceil((reminderDate - now) / (1000 * 60 * 60 * 24));
+                    return daysUntil <= 3 && daysUntil >= 0;
+                });
+            };
+
+            const getOverdue = () => {
+                const now = new Date();
+                return todos.filter(t => {
+                    if (!t.dueDate || t.completed) return false;
+                    return new Date(t.dueDate) < now;
+                });
+            };
+
+            const stats = {
+                total: todos.length,
+                completed: todos.filter(t => t.completed).length,
+                pending: todos.filter(t => !t.completed).length,
+                completionRate: todos.length ? Math.round((todos.filter(t => t.completed).length / todos.length) * 100) : 0
+            };
+
+            return (
+                <div className="container">
+                    <div className="header">
+                        <h1>🎯 个人助理</h1>
+                        <p>记录灵感，管理任务，智能提醒</p>
+                    </div>
+
+                    {activeTab === 'dashboard' && (
+                        <>
+                            <div className="stats">
+                                <div className="stat-card">
+                                    <h3>📋 待处理任务</h3>
+                                    <div className="number" style={{ color: '#667eea' }}>{stats.pending}</div>
+                                </div>
+                                <div className="stat-card">
+                                    <h3>✅ 已完成任务</h3>
+                                    <div className="number" style={{ color: '#10b981' }}>{stats.completed}</div>
+                                </div>
+                                <div className="stat-card">
+                                    <h3>📊 完成率</h3>
+                                    <div className="number" style={{ color: '#f59e0b' }}>{stats.completionRate}%</div>
+                                </div>
+                            </div>
+
+                            <div className="main-content">
+                                <div className="card">
+                                    <div className="flex-between">
+                                        <h2>📝 待办事项</h2>
+                                        <button className="btn btn-sm" onClick={() => setShowTodoForm(true)}>
+                                            + 新建
+                                        </button>
+                                    </div>
+                                    {todos.length === 0 ? (
+                                        <p className="text-gray text-center" style={{ padding: '40px' }}>
+                                            暂无待办事项，点击上方按钮添加
+                                        </p>
+                                    ) : (
+                                        todos.filter(t => !t.completed).slice(0, 5).map(todo => (
+                                            <div key={todo.id} className={`todo-item ${todo.priority}`}>
+                                                <div className="flex-between">
+                                                    <div>
+                                                        <strong>{todo.title}</strong>
+                                                        <p className="text-sm text-gray">{todo.description}</p>
+                                                    </div>
+                                                    <div className="flex">
+                                                        <button className="badge badge-high" onClick={() => toggleTodo(todo.id)}>
+                                                            ✓
+                                                        </button>
+                                                        <button className="badge badge-high" onClick={() => deleteTodo(todo.id)}>
+                                                            ✕
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div className="flex" style={{ marginTop: '8px' }}>
+                                                    <span className={`badge badge-${todo.priority}`}>
+                                                        {todo.priority === 'high' ? '高' : todo.priority === 'medium' ? '中' : '低'}优先级
+                                                    </span>
+                                                    {todo.dueDate && (
+                                                        <span className="tag">{new Date(todo.dueDate).toLocaleDateString('zh-CN')}</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+
+                                <div className="card">
+                                    <div className="flex-between">
+                                        <h2>💡 灵感板</h2>
+                                        <button className="btn btn-sm" onClick={() => setShowIdeaForm(true)}>
+                                            + 新想法
+                                        </button>
+                                    </div>
+                                    {ideas.length === 0 ? (
+                                        <p className="text-gray text-center" style={{ padding: '40px' }}>
+                                            暂无灵感，点击上方按钮记录
+                                        </p>
+                                    ) : (
+                                        ideas.slice(0, 3).map(idea => (
+                                            <div key={idea.id} className="idea-item">
+                                                <div className="flex-between">
+                                                    <strong>{idea.title}</strong>
+                                                    <button className="badge badge-high" onClick={() => deleteIdea(idea.id)}>
+                                                        ✕
+                                                    </button>
+                                                </div>
+                                                <p className="text-sm text-gray" style={{ marginTop: '8px' }}>{idea.content}</p>
+                                                <div className="flex" style={{ marginTop: '8px' }}>
+                                                    <span className={`category-badge category-${idea.category}`}>
+                                                        {idea.category === 'general' ? '通用' :
+                                                         idea.category === 'project' ? '项目' :
+                                                         idea.category === 'learning' ? '学习' :
+                                                         idea.category === 'life' ? '生活' : '工作'}
+                                                    </span>
+                                                    {idea.tags && idea.tags.split(',').map((tag, i) => (
+                                                        <span key={i} className="tag">{tag.trim()}</span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    {activeTab === 'todos' && (
+                        <div className="card">
+                            <div className="flex-between">
+                                <h2>📝 所有待办事项</h2>
+                                <button className="btn" onClick={() => setShowTodoForm(true)}>+ 新建任务</button>
+                            </div>
+                            {todos.length === 0 ? (
+                                <p className="text-gray text-center" style={{ padding: '40px' }}>暂无任务</p>
+                            ) : (
+                                todos.map(todo => (
+                                    <div key={todo.id} className={`todo-item ${todo.priority} ${todo.completed ? 'completed' : ''}`}>
+                                        <div className="flex-between">
+                                            <div>
+                                                <strong>{todo.title}</strong>
+                                                <p className="text-sm text-gray">{todo.description}</p>
+                                            </div>
+                                            <div className="flex">
+                                                <button className="badge badge-low" onClick={() => toggleTodo(todo.id)}>
+                                                    {todo.completed ? '↩' : '✓'}
+                                                </button>
+                                                <button className="badge badge-high" onClick={() => deleteTodo(todo.id)}>✕</button>
+                                            </div>
+                                        </div>
+                                        <div className="flex" style={{ marginTop: '8px' }}>
+                                            <span className={`badge badge-${todo.priority}`}>
+                                                {todo.priority === 'high' ? '高' : todo.priority === 'medium' ? '中' : '低'}优先级
+                                            </span>
+                                            {todo.dueDate && <span className="tag">截止: {new Date(todo.dueDate).toLocaleDateString('zh-CN')}</span>}
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    )}
+
+                    {activeTab === 'ideas' && (
+                        <div className="card">
+                            <div className="flex-between">
+                                <h2>💡 所有灵感</h2>
+                                <button className="btn" onClick={() => setShowIdeaForm(true)}>+ 记录新想法</button>
+                            </div>
+                            {ideas.length === 0 ? (
+                                <p className="text-gray text-center" style={{ padding: '40px' }}>暂无灵感</p>
+                            ) : (
+                                ideas.map(idea => (
+                                    <div key={idea.id} className="idea-item">
+                                        <div className="flex-between">
+                                            <strong>{idea.title}</strong>
+                                            <button className="badge badge-high" onClick={() => deleteIdea(idea.id)}>✕</button>
+                                        </div>
+                                        <p className="text-sm text-gray" style={{ marginTop: '8px' }}>{idea.content}</p>
+                                        <div className="flex" style={{ marginTop: '8px' }}>
+                                            <span className={`category-badge category-${idea.category}`}>
+                                                {idea.category === 'general' ? '通用' :
+                                                 idea.category === 'project' ? '项目' :
+                                                 idea.category === 'learning' ? '学习' :
+                                                 idea.category === 'life' ? '生活' : '工作'}
+                                            </span>
+                                            {idea.tags && idea.tags.split(',').map((tag, i) => (
+                                                <span key={i} className="tag">{tag.trim()}</span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    )}
+
+                    {activeTab === 'reminders' && (
+                        <div className="card">
+                            <h2>🔔 智能提醒</h2>
+                            {getReminders().length === 0 && getOverdue().length === 0 ? (
+                                <p className="text-gray text-center" style={{ padding: '40px' }}>暂无提醒</p>
+                            ) : (
+                                <>
+                                    {getOverdue().map(todo => (
+                                        <div key={todo.id} className="reminder urgent">
+                                            <strong>⚠️ {todo.title} 已逾期</strong>
+                                            <p className="text-sm">截止: {new Date(todo.dueDate).toLocaleDateString('zh-CN')}</p>
+                                        </div>
+                                    ))}
+                                    {getReminders().map(todo => (
+                                        <div key={todo.id} className="reminder">
+                                            <strong>📌 {todo.title}</strong>
+                                            <p className="text-sm">提醒时间: {new Date(todo.reminderDate).toLocaleString('zh-CN')}</p>
+                                        </div>
+                                    ))}
+                                </>
+                            )}
+                        </div>
+                    )}
+
+                    <div style={{ position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)', background: 'white', padding: '10px 20px', borderRadius: '20px', boxShadow: '0 4px 15px rgba(0,0,0,0.2)', display: 'flex', gap: '10px' }}>
+                        <button className={`badge ${activeTab === 'dashboard' ? 'badge-high' : ''}`} onClick={() => setActiveTab('dashboard')}>仪表板</button>
+                        <button className={`badge ${activeTab === 'todos' ? 'badge-high' : ''}`} onClick={() => setActiveTab('todos')}>待办</button>
+                        <button className={`badge ${activeTab === 'ideas' ? 'badge-high' : ''}`} onClick={() => setActiveTab('ideas')}>灵感</button>
+                        <button className={`badge ${activeTab === 'reminders' ? 'badge-high' : ''}`} onClick={() => setActiveTab('reminders')}>提醒</button>
+                    </div>
+
+                    {showTodoForm && (
+                        <TodoForm
+                            onClose={() => setShowTodoForm(false)}
+                            onSave={addTodo}
+                        />
+                    )}
+
+                    {showIdeaForm && (
+                        <IdeaForm
+                            onClose={() => setShowIdeaForm(false)}
+                            onSave={addIdea}
+                        />
+                    )}
+                </div>
+            );
+        }
+
+        function TodoForm({ onClose, onSave }) {
+            const [title, setTitle] = useState('');
+            const [description, setDescription] = useState('');
+            const [priority, setPriority] = useState('medium');
+            const [dueDate, setDueDate] = useState('');
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (!title.trim()) return;
+                onSave({ title, description, priority, dueDate, reminderDate: dueDate });
+                onClose();
+            };
+
+            return (
+                <div className="form-overlay" onClick={onClose}>
+                    <div className="form-container" onClick={e => e.stopPropagation()}>
+                        <h2 style={{ marginBottom: '20px' }}>📝 新建待办事项</h2>
+                        <form onSubmit={handleSubmit}>
+                            <input
+                                className="input"
+                                placeholder="任务标题"
+                                value={title}
+                                onChange={e => setTitle(e.target.value)}
+                                required
+                            />
+                            <textarea
+                                className="input"
+                                placeholder="任务描述"
+                                value={description}
+                                onChange={e => setDescription(e.target.value)}
+                            />
+                            <select className="input" value={priority} onChange={e => setPriority(e.target.value)}>
+                                <option value="high">高优先级</option>
+                                <option value="medium">中优先级</option>
+                                <option value="low">低优先级</option>
+                            </select>
+                            <input
+                                className="input"
+                                type="date"
+                                value={dueDate}
+                                onChange={e => setDueDate(e.target.value)}
+                            />
+                            <div className="flex" style={{ marginTop: '20px' }}>
+                                <button type="submit" className="btn">保存</button>
+                                <button type="button" className="btn btn-danger" onClick={onClose}>取消</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        }
+
+        function IdeaForm({ onClose, onSave }) {
+            const [title, setTitle] = useState('');
+            const [content, setContent] = useState('');
+            const [category, setCategory] = useState('general');
+            const [tags, setTags] = useState('');
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (!title.trim()) return;
+                onSave({ title, content, category, tags });
+                onClose();
+            };
+
+            return (
+                <div className="form-overlay" onClick={onClose}>
+                    <div className="form-container" onClick={e => e.stopPropagation()}>
+                        <h2 style={{ marginBottom: '20px' }}>💡 记录新想法</h2>
+                        <form onSubmit={handleSubmit}>
+                            <input
+                                className="input"
+                                placeholder="想法标题"
+                                value={title}
+                                onChange={e => setTitle(e.target.value)}
+                                required
+                            />
+                            <textarea
+                                className="input"
+                                placeholder="详细描述"
+                                value={content}
+                                onChange={e => setContent(e.target.value)}
+                            />
+                            <select className="input" value={category} onChange={e => setCategory(e.target.value)}>
+                                <option value="general">通用</option>
+                                <option value="project">项目</option>
+                                <option value="learning">学习</option>
+                                <option value="life">生活</option>
+                                <option value="business">工作</option>
+                            </select>
+                            <input
+                                className="input"
+                                placeholder="标签（用逗号分隔）"
+                                value={tags}
+                                onChange={e => setTags(e.target.value)}
+                            />
+                            <div className="flex" style={{ marginTop: '20px' }}>
+                                <button type="submit" className="btn">保存</button>
+                                <button type="button" className="btn btn-danger" onClick={onClose}>取消</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>

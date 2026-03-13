@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能秘书 V2.0 - AI Assistant</title>
+    <script>
+        // 清除旧缓存
+        localStorage.removeItem('ai_assistant_todos');
+        localStorage.removeItem('ai_assistant_ideas');
+        localStorage.removeItem('ai_assistant_reminders');
+        localStorage.removeItem('ai_assistant_messages');
+        localStorage.removeItem('last_reminder_check');
+    </script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+        }
+        .version-badge {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            z-index: 1000;
+        }
+        .app-container {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .main-chat {
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .sidebar {
+            background: rgba(30, 41, 59, 0.8);
+            border-left: 1px solid rgba(148, 163, 184, 0.2);
+            padding: 20px;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+        }
+        .avatar-container {
+            width: 120px;
+            height: 120px;
+            margin: 20px auto;
+            position: relative;
+        }
+        .avatar {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+            box-shadow: 0 0 30px rgba(102, 126, 234, 0.5);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 30px rgba(102, 126, 234, 0.5); }
+            50% { transform: scale(1.05); box-shadow: 0 0 50px rgba(102, 126, 234, 0.8); }
+        }
+        .message {
+            margin-bottom: 20px;
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .message.assistant {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+            padding: 16px 20px;
+            border-radius: 20px 20px 20px 5px;
+            max-width: 80%;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+        }
+        .message.user {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(99, 102, 241, 0.3) 100%);
+            padding: 16px 20px;
+            border-radius: 20px 20px 5px 20px;
+            max-width: 80%;
+            margin-left: auto;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        .message.system {
+            background: rgba(239, 68, 68, 0.2);
+            padding: 12px 16px;
+            border-radius: 10px;
+            border-left: 3px solid #ef4444;
+            max-width: 90%;
+            margin: 10px auto;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        .input-area {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(148, 163, 184, 0.2);
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+        .chat-input {
+            flex: 1;
+            background: rgba(30, 41, 59, 0.8);
+            border: 2px solid rgba(148, 163, 184, 0.3);
+            border-radius: 25px;
+            padding: 15px 25px;
+            color: #e2e8f0;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s;
+        }
+        .chat-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+        }
+        .send-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        .send-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        .section {
+            margin-bottom: 24px;
+        }
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #94a3b8;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .card {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .card:hover {
+            background: rgba(30, 41, 59, 0.8);
+            border-color: rgba(102, 126, 234, 0.5);
+            transform: translateX(5px);
+        }
+        .card-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .card-title {
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #e2e8f0;
+        }
+        .card-meta {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+        .tag {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            margin-right: 6px;
+        }
+        .tag-urgent { background: rgba(239, 68, 68, 0.3); color: #fca5a5; }
+        .tag-medium { background: rgba(251, 191, 36, 0.3); color: #fcd34d; }
+        .tag-low { background: rgba(34, 197, 94, 0.3); color: #86efac; }
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 8px 0;
+        }
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            background: #667eea;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing {
+            0%, 100% { transform: translateY(0); opacity: 0.5; }
+            50% { transform: translateY(-5px); opacity: 1; }
+        }
+        .quick-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .quick-action {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            color: #e2e8f0;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .quick-action:hover {
+            background: rgba(102, 126, 234, 0.3);
+            border-color: rgba(102, 126, 234, 0.5);
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #64748b;
+        }
+        .time-display {
+            text-align: center;
+            font-size: 32px;
+            font-weight: 300;
+            color: #e2e8f0;
+            margin-bottom: 10px;
+        }
+        .greeting {
+            text-align: center;
+            color: #94a3b8;
+            margin-bottom: 20px;
+        }
+        .assistant-name {
+            text-align: center;
+            font-size: 20px;
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-bottom: 5px;
+        }
+        .assistant-status {
+            text-align: center;
+            font-size: 12px;
+            color: #94a3b8;
+            margin-bottom: 20px;
+        }
+        .assistant-status span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            margin-right: 5px;
+            animation: pulse 2s infinite;
+        }
+        .highlight {
+            background: rgba(251, 191, 36, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .draft-preview {
+            background: rgba(30, 41, 59, 0.8);
+            border: 2px dashed rgba(102, 126, 234, 0.5);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 16px;
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+        @media (max-width: 1024px) {
+            .app-container {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="version-badge">🤖 智能秘书 V2.0</div>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        function App() {
+            const [messages, setMessages] = useState([]);
+            const [todos, setTodos] = useState([]);
+            const [ideas, setIdeas] = useState([]);
+            const [reminders, setReminders] = useState([]);
+            const [inputValue, setInputValue] = useState('');
+            const [isTyping, setIsTyping] = useState(false);
+            const messagesEndRef = useRef(null);
+
+            useEffect(() => {
+                const savedTodos = localStorage.getItem('ai_assistant_todos');
+                const savedIdeas = localStorage.getItem('ai_assistant_ideas');
+                const savedReminders = localStorage.getItem('ai_assistant_reminders');
+                const savedMessages = localStorage.getItem('ai_assistant_messages');
+
+                if (savedTodos) setTodos(JSON.parse(savedTodos));
+                if (savedIdeas) setIdeas(JSON.parse(savedIdeas));
+                if (savedReminders) setReminders(JSON.parse(savedReminders));
+                if (savedMessages) setMessages(JSON.parse(savedMessages));
+
+                if (!savedMessages) {
+                    setTimeout(() => {
+                        addMessage(greetingMessage(), 'assistant');
+                    }, 500);
+                }
+            }, []);
+
+            useEffect(() => {
+                localStorage.setItem('ai_assistant_todos', JSON.stringify(todos));
+                localStorage.setItem('ai_assistant_ideas', JSON.stringify(ideas));
+                localStorage.setItem('ai_assistant_reminders', JSON.stringify(reminders));
+                localStorage.setItem('ai_assistant_messages', JSON.stringify(messages));
+            }, [todos, ideas, reminders, messages]);
+
+            useEffect(() => {
+                checkReminders();
+                const interval = setInterval(checkReminders, 60000);
+                return () => clearInterval(interval);
+            }, [todos, reminders]);
+
+            useEffect(() => {
+                scrollToBottom();
+            }, [messages, isTyping]);
+
+            const scrollToBottom = () => {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            };
+
+            const greetingMessage = () => {
+                const hour = new Date().getHours();
+                let greeting = '晚上好';
+                if (hour < 6) greeting = '凌晨好';
+                else if (hour < 9) greeting = '早上好';
+                else if (hour < 12) greeting = '上午好';
+                else if (hour < 14) greeting = '中午好';
+                else if (hour < 18) greeting = '下午好';
+
+                return `👋 ${greeting}！我是你的智能秘书小助手。
+
+我可以帮你：
+• 📝 记录待办事项、灵感想法、提醒事项
+• 💡 从你的灵感中整合并创作内容
+• 🔔 在关键时刻提醒你该做什么
+• 🤝 帮助你解决问题
+
+你可以用自然语言和我交流，比如：
+"明天下午3点要开会"
+"想到了一个关于AI的创业点子"
+"提醒我下周一开始健身"
+"帮我把关于技术的灵感整理成一篇文章"
+
+有什么我可以帮你的吗？`;
+            };
+
+            const checkReminders = () => {
+                const now = new Date();
+                reminders.forEach(reminder => {
+                    const reminderTime = new Date(reminder.reminderDate);
+                    const minutesUntil = Math.ceil((reminderTime - now) / (1000 * 60));
+
+                    if (minutesUntil <= 30 && minutesUntil >= 0 && !reminder.notified) {
+                        addMessage(`🔔 <strong>提醒：</strong> ${reminder.title}`, 'system');
+                        setReminders(reminders.map(r =>
+                            r.id === reminder.id ? { ...r, notified: true } : r
+                        ));
+                    }
+                });
+
+                const overdueTodos = todos.filter(todo => {
+                    if (!todo.dueDate || todo.completed) return false;
+                    return new Date(todo.dueDate) < now;
+                });
+
+                if (overdueTodos.length > 0) {
+                    const lastChecked = localStorage.getItem('last_reminder_check');
+                    const nowTime = now.getTime();
+                    if (!lastChecked || nowTime - parseInt(lastChecked) > 3600000) {
+                        addMessage(`⚠️ <strong>注意：</strong>你有 ${overdueTodos.length} 个任务已逾期`, 'system');
+                        localStorage.setItem('last_reminder_check', nowTime.toString());
+                    }
+                }
+            };
+
+            const addMessage = (content, type = 'user', metadata = {}) => {
+                const newMessage = {
+                    id: Date.now(),
+                    content,
+                    type,
+                    timestamp: new Date().toISOString(),
+                    ...metadata
+                };
+                setMessages(prev => [...prev, newMessage]);
+            };
+
+            const parseInput = (text) => {
+                const lowerText = text.toLowerCase();
+                const result = {
+                    type: 'unknown',
+                    content: text,
+                    priority: 'medium',
+                    dueDate: null,
+                    reminderDate: null,
+                    category: 'general',
+                    tags: []
+                };
+
+                const timePatterns = {
+                    '今天': () => new Date(),
+                    '明天': () => {
+                        const d = new Date();
+                        d.setDate(d.getDate() + 1);
+                        return d;
+                    },
+                    '后天': () => {
+                        const d = new Date();
+                        d.setDate(d.getDate() + 2);
+                        return d;
+                    },
+                    '下周': () => {
+                        const d = new Date();
+                        d.setDate(d.getDate() + 7);
+                        return d;
+                    }
+                };
+
+                for (const [keyword, dateFunc] of Object.entries(timePatterns)) {
+                    if (lowerText.includes(keyword)) {
+                        result.dueDate = dateFunc().toISOString().split('T')[0];
+                        break;
+                    }
+                }
+
+                const timeMatch = text.match(/(\d{1,2})[:：](\d{2})/);
+                if (timeMatch && result.dueDate) {
+                    const [_, hours, minutes] = timeMatch;
+                    const date = new Date(result.dueDate);
+                    date.setHours(parseInt(hours), parseInt(minutes));
+                    result.dueDate = date.toISOString();
+                    result.reminderDate = date.toISOString();
+                }
+
+                if (lowerText.includes('待办') || lowerText.includes('任务') || lowerText.includes('要做') ||
+                    lowerText.includes('完成') || lowerText.includes('记得')) {
+                    result.type = 'todo';
+                } else if (lowerText.includes('想法') || lowerText.includes('灵感') || lowerText.includes('点子') ||
+                               lowerText.includes('创意') || lowerText.includes('突然想到')) {
+                    result.type = 'idea';
+                } else if (lowerText.includes('提醒') || lowerText.includes('记得提醒') || lowerText.includes('别忘了')) {
+                    result.type = 'reminder';
+                } else if (lowerText.includes('创作') || lowerText.includes('写一篇') || lowerText.includes('生成') ||
+                               lowerText.includes('整理') || lowerText.includes('帮我写')) {
+                    result.type = 'create';
+                } else if (lowerText.includes('完成') || lowerText.includes('搞定') || lowerText.includes('已做')) {
+                    result.type = 'complete';
+                }
+
+                if (lowerText.includes('重要') || lowerText.includes('紧急') || lowerText.includes('优先')) {
+                    result.priority = 'high';
+                } else if (lowerText.includes('不急') || lowerText.includes('有空') || lowerText.includes('慢慢')) {
+                    result.priority = 'low';
+                }
+
+                if (lowerText.includes('工作') || lowerText.includes('项目')) {
+                    result.category = 'work';
+                } else if (lowerText.includes('学习') || lowerText.includes('看书') || lowerText.includes('课程')) {
+                    result.category = 'learning';
+                } else if (lowerText.includes('生活') || lowerText.includes('个人')) {
+                    result.category = 'life';
+                }
+
+                return result;
+            };
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                if (!inputValue.trim()) return;
+
+                addMessage(inputValue, 'user');
+                setInputValue('');
+                setIsTyping(true);
+
+                await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
+
+                const parsed = parseInput(inputValue);
+                let response = '';
+
+                switch (parsed.type) {
+                    case 'todo':
+                        handleAddTodo(parsed);
+                        response = generateTodoResponse(parsed);
+                        break;
+                    case 'idea':
+                        handleAddIdea(parsed);
+                        response = generateIdeaResponse(parsed);
+                        break;
+                    case 'reminder':
+                        handleAddReminder(parsed);
+                        response = generateReminderResponse(parsed);
+                        break;
+                    case 'create':
+                        response = await handleCreateContent(parsed);
+                        break;
+                    case 'complete':
+                        response = await handleCompleteTask(parsed);
+                        break;
+                    default:
+                        response = await handleGeneralQuery(parsed);
+                }
+
+                addMessage(response, 'assistant');
+                setIsTyping(false);
+            };
+
+            const handleAddTodo = (parsed) => {
+                const todo = {
+                    id: Date.now(),
+                    title: parsed.content,
+                    priority: parsed.priority,
+                    dueDate: parsed.dueDate,
+                    reminderDate: parsed.reminderDate,
+                    completed: false,
+                    createdAt: new Date().toISOString()
+                };
+                setTodos(prev => [todo, ...prev]);
+            };
+
+            const generateTodoResponse = (parsed) => {
+                const priorityText = parsed.priority === 'high' ? '⚡ 高优先级' : parsed.priority === 'low' ? '📝 普通优先级' : '📋 中等优先级';
+                const timeText = parsed.dueDate ? `，截止时间：${new Date(parsed.dueDate).toLocaleDateString('zh-CN')}` : '';
+                return `✅ 已为你记录：<span class="highlight">${parsed.content}</span>\n${priorityText}${timeText}\n\n我会在到期时提醒你完成！`;
+            };
+
+            const handleAddIdea = (parsed) => {
+                const idea = {
+                    id: Date.now(),
+                    title: parsed.content,
+                    category: parsed.category,
+                    tags: [],
+                    createdAt: new Date().toISOString()
+                };
+                setIdeas(prev => [idea, ...prev]);
+            };
+
+            const generateIdeaResponse = (parsed) => {
+                const categoryText = parsed.category === 'work' ? '💼 工作' : parsed.category === 'learning' ? '📚 学习' : '💭 生活';
+                return `💡 已记录你的灵感：<span class="highlight">${parsed.content}</span>\n分类：${categoryText}\n\n这个想法很有价值！我可以帮你：\n• 稍后整合这些灵感\n• 深化这个想法\n• 基于灵感创作内容`;
+            };
+
+            const handleAddReminder = (parsed) => {
+                const reminder = {
+                    id: Date.now(),
+                    title: parsed.content,
+                    reminderDate: parsed.dueDate || new Date(Date.now() + 3600000).toISOString(),
+                    notified: false,
+                    createdAt: new Date().toISOString()
+                };
+                setReminders(prev => [reminder, ...prev]);
+            };
+
+            const generateReminderResponse = (parsed) => {
+                const timeText = parsed.dueDate ? new Date(parsed.dueDate).toLocaleString('zh-CN') : '一小时后';
+                return `🔔 已设置提醒：<span class="highlight">${parsed.content}</span>\n提醒时间：${timeText}\n\n我会准时提醒你！`;
+            };
+
+            const handleCreateContent = async (parsed) => {
+                const relevantIdeas = ideas.filter(idea =>
+                    parsed.content.toLowerCase().includes(idea.title.toLowerCase()) ||
+                    idea.title.toLowerCase().includes('技术') ||
+                    idea.title.toLowerCase().includes('想法')
+                ).slice(0, 3);
+
+                if (relevantIdeas.length === 0) {
+                    return `📝 你希望我创作什么内容？\n\n目前我记录了 ${ideas.length} 个灵感，你可以：\n• 告诉我你想写关于什么主题\n• 让我基于特定灵感创作\n• 或者先记录一些想法`;
+                }
+
+                const draft = generateDraft(parsed.content, relevantIdeas);
+                const response = `✨ 基于你的 ${relevantIdeas.length} 个相关灵感，我为你准备了以下内容草稿：\n\n<div class="draft-preview">${draft}</div>\n\n你觉得怎么样？我可以根据你的反馈继续调整。`;
+                return response;
+            };
+
+            const generateDraft = (request, ideas) => {
+                const ideaTexts = ideas.map(idea => `• ${idea.title}`).join('\n');
+                return `# ${request.replace(/帮我写|创作|生成/g, '').trim()}
+
+## 基于你的灵感
+
+${ideaTexts}
+
+## 核心观点
+
+基于以上想法，这篇文章/方案的核心要点包括：
+
+1. **创新点**：结合你记录的多个灵感，形成独特的视角
+2. **实用性**：提供具体的实施步骤和建议
+3. **价值体现**：突出这个想法带来的实际意义
+
+## 建议结构
+
+1. 引言：阐述背景和重要性
+2. 主体：详细展开核心观点
+3. 案例分析：结合实际场景说明
+4. 总结与展望：未来发展方向
+
+*（这是根据你的灵感自动生成的初稿，你可以告诉我需要调整哪些部分）*`;
+            };
+
+            const handleCompleteTask = async (parsed) => {
+                const matchedTodo = todos.find(todo =>
+                    parsed.content.toLowerCase().includes(todo.title.toLowerCase().slice(0, 10)) ||
+                    todo.title.toLowerCase().includes('完成')
+                );
+
+                if (matchedTodo) {
+                    setTodos(prev => prev.map(todo =>
+                        todo.id === matchedTodo.id ? { ...todo, completed: true } : todo
+                    ));
+                    return `🎉 太棒了！你完成了：<span class="highlight">${matchedTodo.title}</span>\n\n继续保持！今天已经完成了 ${todos.filter(t => t.completed).length + 1} 个任务。`;
+                }
+
+                return `🤔 我没有找到对应的任务。你想完成哪个任务？\n\n你的待办任务有：\n${todos.filter(t => !t.completed).slice(0, 5).map(t => `• ${t.title}`).join('\n')}`;
+            };
+
+            const handleGeneralQuery = async (parsed) => {
+                const text = parsed.content.toLowerCase();
+
+                if (text.includes('统计') || text.includes('多少')) {
+                    const pendingTodos = todos.filter(t => !t.completed).length;
+                    const completedTodos = todos.filter(t => t.completed).length;
+                    return `📊 当前状态：\n\n📝 待办任务：${pendingTodos} 个\n✅ 已完成任务：${completedTodos} 个\n💡 记录的灵感：${ideas.length} 个\n🔔 设置的提醒：${reminders.length} 个\n\n继续保持，你做得很棒！`;
+                }
+
+                if (text.includes('待办') || text.includes('任务')) {
+                    const pendingTodos = todos.filter(t => !t.completed).slice(0, 5);
+                    if (pendingTodos.length === 0) {
+                        return `🎉 太好了！你现在没有待办任务！\n\n需要我帮你添加新的任务吗？`;
+                    }
+                    return `📋 你当前的待办任务：\n\n${pendingTodos.map((t, i) => `${i + 1}. ${t.title}${t.dueDate ? ` (${new Date(t.dueDate).toLocaleDateString('zh-CN')})` : ''}`).join('\n')}\n\n需要我帮你处理这些任务吗？`;
+                }
+
+                if (text.includes('灵感') || text.includes('想法')) {
+                    const recentIdeas = ideas.slice(0, 5);
+                    if (recentIdeas.length === 0) {
+                        return `💡 你还没有记录任何灵感。\n\n有什么想法都可以告诉我，我会帮你记录并整理！`;
+                    }
+                    return `💡 你记录的灵感：\n\n${recentIdeas.map((idea, i) => `${i + 1}. ${idea.title}`).join('\n')}\n\n需要我基于这些灵感创作内容吗？`;
+                }
+
+                if (text.includes('帮') || text.includes('建议') || text.includes('怎么办')) {
+                    const pendingHighPriority = todos.filter(t => !t.completed && t.priority === 'high');
+                    const pendingTodos = todos.filter(t => !t.completed);
+
+                    let suggestions = [];
+
+                    if (pendingHighPriority.length > 0) {
+                        suggestions.push(`🔴 建议优先处理高优先级任务：${pendingHighPriority[0].title}`);
+                    }
+
+                    if (ideas.length >= 3) {
+                        suggestions.push(`✨ 你有 ${ideas.length} 个灵感，要不要让我帮你整合成内容？`);
+                    }
+
+                    if (pendingTodos.length > 3) {
+                        suggestions.push(`📊 待办任务较多，建议合理规划时间，一次专注1-2个任务`);
+                    }
+
+                    if (suggestions.length === 0) {
+                        return `🤔 我可以帮你：\n\n• 记录新的任务或想法\n• 查看当前状态和统计\n• 基于灵感创作内容\n• 制定行动计划\n\n有什么需要我做的吗？`;
+                    }
+
+                    return `💭 给你的一些建议：\n\n${suggestions.join('\n\n')}`;
+                }
+
+                return `我理解你想说：${parsed.content}\n\n让我来帮你处理...\n• 如果这是任务，我会记录下来\n• 如果是灵感，我会为你保存\n• 如果是提醒，我会准时通知你\n\n我已记录到合适的地方！需要我进一步协助吗？`;
+            };
+
+            const handleQuickAction = (action) => {
+                setInputValue(action);
+            };
+
+            const getPendingTodos = () => todos.filter(t => !t.completed);
+            const getRecentIdeas = () => ideas.slice(0, 5);
+            const getActiveReminders = () => reminders.filter(r => new Date(r.reminderDate) > new Date());
+
+            return (
+                <div className="app-container">
+                    <div className="main-chat">
+                        <div className="greeting">
+                            <h1 className="time-display">
+                                {new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+                            </h1>
+                            <p>星期{['日', '一', '二', '三', '四', '五', '六'][new Date().getDay()]}</p>
+                        </div>
+
+                        {messages.length === 0 && (
+                            <div className="quick-actions">
+                                <button className="quick-action" onClick={() => handleQuickAction('明天下午3点要开会')}>明天下午3点要开会</button>
+                                <button className="quick-action" onClick={() => handleQuickAction('想到了一个关于AI的创业点子')}>想到了一个关于AI的创业点子</button>
+                                <button className="quick-action" onClick={() => handleQuickAction('提醒我下周一开始健身')}>提醒我下周一开始健身</button>
+                                <button className="quick-action" onClick={() => handleQuickAction('帮我把关于技术的灵感整理成一篇文章')}>帮我把关于技术的灵感整理成一篇文章</button>
+                            </div>
+                        )}
+
+                        <div className="messages">
+                            {messages.map((message) => (
+                                <div key={message.id} className={`message ${message.type}`}>
+                                    <div dangerouslySetInnerHTML={{ __html: message.content }} />
+                                </div>
+                            ))}
+                            {isTyping && (
+                                <div className="message assistant">
+                                    <div className="typing-indicator">
+                                        <span></span>
+                                        <span></span>
+                                        <span></span>
+                                    </div>
+                                </div>
+                            )}
+                            <div ref={messagesEndRef} />
+                        </div>
+
+                        <div className="input-area">
+                            <form onSubmit={handleSubmit} className="input-group">
+                                <input
+                                    type="text"
+                                    className="chat-input"
+                                    placeholder="用自然语言告诉我你的想法、任务或需求..."
+                                    value={inputValue}
+                                    onChange={(e) => setInputValue(e.target.value)}
+                                />
+                                <button type="submit" className="send-btn">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                    </svg>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div className="sidebar">
+                        <div className="avatar-container">
+                            <div className="avatar">🤖</div>
+                        </div>
+                        <div className="assistant-name">智能秘书</div>
+                        <div className="assistant-status"><span></span>在线</div>
+
+                        <div className="section">
+                            <div className="section-title">📋 待办事项 ({getPendingTodos().length})</div>
+                            {getPendingTodos().length === 0 ? (
+                                <div className="empty-state">✨ 没有待办任务</div>
+                            ) : (
+                                getPendingTodos().slice(0, 4).map(todo => (
+                                    <div key={todo.id} className="card" onClick={() => setInputValue(`完成 ${todo.title}`)}>
+                                        <div className="card-content">
+                                            <div>
+                                                <div className="card-title">{todo.title}</div>
+                                                {todo.dueDate && <div className="card-meta">截止: {new Date(todo.dueDate).toLocaleDateString('zh-CN')}</div>}
+                                            </div>
+                                            <span className={`tag tag-${todo.priority}`}>{todo.priority === 'high' ? '高' : todo.priority === 'medium' ? '中' : '低'}</span>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        <div className="section">
+                            <div className="section-title">💡 灵感 ({ideas.length})</div>
+                            {ideas.length === 0 ? (
+                                <div className="empty-state">💭 暂无灵感记录</div>
+                            ) : (
+                                getRecentIdeas().map(idea => (
+                                    <div key={idea.id} className="card" onClick={() => setInputValue(`帮我把关于${idea.title}的灵感整理成内容`)}>
+                                        <div className="card-content">
+                                            <div className="card-title">{idea.title}</div>
+                                            <span className={`tag tag-idea`}>{idea.category}</span>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        <div className="section">
+                            <div className="section-title">🔔 提醒 ({getActiveReminders().length})</div>
+                            {getActiveReminders().length === 0 ? (
+                                <div className="empty-state">🔕 暂无活跃提醒</div>
+                            ) : (
+                                getActiveReminders().slice(0, 3).map(reminder => (
+                                    <div key={reminder.id} className="card">
+                                        <div className="card-content">
+                                            <div className="card-title">{reminder.title}</div>
+                                            <div className="card-meta">{new Date(reminder.reminderDate).toLocaleString('zh-CN')}</div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        <div className="section">
+                            <div className="section-title">📊 今日统计</div>
+                            <div className="card">
+                                <div className="card-content">
+                                    <div>✅ 已完成: {todos.filter(t => t.completed).length}</div>
+                                    <div>📝 待处理: {getPendingTodos().length}</div>
+                                    <div>💡 新灵感: {ideas.filter(i => {
+                                        const today = new Date().toDateString();
+                                        return new Date(i.createdAt).toDateString() === today;
+                                    }).length}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
