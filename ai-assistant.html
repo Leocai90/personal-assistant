@@ -508,13 +508,14 @@
                 e.preventDefault();
                 if (!inputValue.trim()) return;
 
-                addMessage(inputValue, 'user');
+                const userMessage = inputValue;
+                addMessage(userMessage, 'user');
                 setInputValue('');
                 setIsTyping(true);
 
                 await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
 
-                const parsed = parseInput(inputValue);
+                const parsed = parseInput(userMessage);
                 let response = '';
 
                 switch (parsed.type) {
